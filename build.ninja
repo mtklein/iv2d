@@ -1,0 +1,31 @@
+builddir = out
+
+cc   = /opt/homebrew/opt/llvm/bin/clang
+warn = -Weverything
+
+rule compile
+    command = $cc -g -O1 -Werror $warn -fcolor-diagnostics $flags -MD -MF $out.d -c $in -o $out
+    depfile = $out.d
+    deps    = gcc
+
+rule link
+    command = $cc -dead_strip $in $flags -o $out
+
+rule run
+    command = ./$in > $out
+
+rule git_update
+    command = git add -u && touch $out
+
+build out/iv.o: compile iv.c
+
+build out/iv_test.o: compile iv_test.c
+build out/iv_test: link out/iv.o out/iv_test.o
+build out/iv_test.ok: run out/iv_test
+
+build out/demo.o: compile demo.c
+    flags = -isystem /opt/homebrew/include
+build out/demo: link out/demo.o out/iv.o
+    flags = -L/opt/homebrew/lib -lSDL3
+
+build out/git_updated: git_update out/demo out/iv_test.ok

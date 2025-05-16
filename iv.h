@@ -1,0 +1,11 @@
+#pragma once
+
+typedef struct {
+    float lo,hi;
+} iv;
+
+iv iv_add(iv, iv);
+iv iv_sub(iv, iv);
+iv iv_mul(iv, iv);
+iv iv_min(iv, iv);
+iv iv_max(iv, iv);
