@@ -80,11 +80,18 @@ static void test_max(void) {
     }
 }
 
+static void test_sqrt(void) {
+    iv z = iv_sqrt((iv){4,16});
+    expect(equiv(z.lo, 2));
+    expect(equiv(z.hi, 4));
+}
+
 int main(void) {
     test_add();
     test_sub();
     test_mul();
     test_min();
     test_max();
+    test_sqrt();
     return 0;
 }

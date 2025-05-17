@@ -9,3 +9,4 @@ iv iv_sub(iv, iv);
 iv iv_mul(iv, iv);
 iv iv_min(iv, iv);
 iv iv_max(iv, iv);
+iv iv_sqrt(iv);

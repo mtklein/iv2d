@@ -39,3 +39,10 @@ iv iv_max(iv x, iv y) {
         fmaxf(x.hi, y.hi),
     };
 }
+
+iv iv_sqrt(iv x) {
+    return (iv){
+        sqrtf(x.lo),
+        sqrtf(x.hi),
+    };
+}
