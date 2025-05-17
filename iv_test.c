@@ -44,9 +44,47 @@ static void test_mul(void) {
     }
 }
 
+static void test_min(void) {
+    {
+        iv z = iv_min((iv){3,4}, (iv){5,6});
+        expect(equiv(z.lo, 3));
+        expect(equiv(z.hi, 4));
+    }
+    {
+        iv z = iv_min((iv){-3,4}, (iv){-5,6});
+        expect(equiv(z.lo, -5));
+        expect(equiv(z.hi,  4));
+    }
+    {
+        iv z = iv_min((iv){-3,4}, (iv){-5,-1});
+        expect(equiv(z.lo, -5));
+        expect(equiv(z.hi, -1));
+    }
+}
+
+static void test_max(void) {
+    {
+        iv z = iv_max((iv){3,4}, (iv){5,6});
+        expect(equiv(z.lo, 5));
+        expect(equiv(z.hi, 6));
+    }
+    {
+        iv z = iv_max((iv){-3,4}, (iv){-5,6});
+        expect(equiv(z.lo, -3));
+        expect(equiv(z.hi,  6));
+    }
+    {
+        iv z = iv_max((iv){-3,4}, (iv){-5,-1});
+        expect(equiv(z.lo, -3));
+        expect(equiv(z.hi,  4));
+    }
+}
+
 int main(void) {
     test_add();
     test_sub();
     test_mul();
+    test_min();
+    test_max();
     return 0;
 }
