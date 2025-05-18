@@ -1,7 +1,7 @@
 builddir = out
 
 cc   = /opt/homebrew/opt/llvm/bin/clang
-warn = -Weverything
+warn = -Weverything -Wno-unsafe-buffer-usage
 
 rule compile
     command = $cc -g -O1 -Werror $warn -fcolor-diagnostics $flags -MD -MF $out.d -c $in -o $out
@@ -22,6 +22,8 @@ build out/iv_test.o:  compile iv_test.c
 build out/iv_test:    link out/iv.o out/iv_test.o
 build out/iv_test.ok: run out/iv_test
 
+build out/iv2d.o: compile iv2d.c
+
 build out/stb_image_write.o: compile stb_image_write.c
     flags = -w
 
@@ -30,4 +32,9 @@ build out/demo.o: compile demo.c
 build out/demo: link out/demo.o out/iv.o
     flags = -L/opt/homebrew/lib -lSDL3
 
-build out/git_updated: git_update build.ninja out/iv_test.ok out/stb_image_write.o out/demo
+build out/git_updated: git_update $
+    out/iv_test.ok $
+    out/iv2d.o $
+    out/stb_image_write.o $
+    out/demo $
+    build.ninja
