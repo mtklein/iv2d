@@ -1,7 +1,11 @@
 builddir = out
 
 cc   = /opt/homebrew/opt/llvm/bin/clang
-warn = -Weverything
+warn = -Weverything $
+    -Wno-declaration-after-statement $
+    -Wno-pre-c11-compat $
+    -Wno-unsafe-buffer-usage $
+
 
 rule compile
     command = $cc -g -O1 -Werror $warn -fcolor-diagnostics $flags -MD -MF $out.d -c $in -o $out
