@@ -1,6 +1,8 @@
 #define SDL_MAIN_USE_CALLBACKS 1
+#include "iv.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <math.h>
 
 typedef struct {
     SDL_Window   *window;
@@ -45,24 +47,40 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
+static iv cover_circle(iv x, iv y, float cx, float cy, float r) {
+    iv const dx = iv_sub(x, (iv){cx,cx}),
+             dy = iv_sub(y, (iv){cy,cy});
+    return iv_sub(iv_add(iv_mul(dx,dx),
+                         iv_mul(dy,dy)),
+                  (iv){r*r,r*r});
+}
+
 SDL_AppResult SDL_AppIterate(void *ctx) {
     App *app = ctx;
 
     int w,h;
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
-    SDL_FRect const square = {
-        (float)(w - 100) / 2,
-        (float)(h - 100) / 2,
-        100.0f,
-        100.0f,
-    };
+    float const cx = 0.5f * (float)w,
+                cy = 0.5f * (float)h,
+                r  = 0.5f * fminf(cx,cy);
 
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
     SDL_RenderClear            (app->renderer         );
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
-    SDL_RenderFillRect         (app->renderer, &square);
-    SDL_RenderPresent          (app->renderer         );
+    for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+        float const fx = (float)x,
+                    fy = (float)y;
+        iv const circle = cover_circle((iv){fx,fx+1},
+                                       (iv){fy,fy+1},
+                                       cx,cy,r);
+        if (circle.lo < 0 && circle.hi < 0) {
+            SDL_FRect const px = {fx,fy,1,1};
+            SDL_RenderFillRect(app->renderer, &px);
+        }
+    }
+    SDL_RenderPresent(app->renderer);
 
     return SDL_APP_CONTINUE;
 }
