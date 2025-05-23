@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
+#include <stdio.h>
 
 typedef struct {
     SDL_Window   *window;
@@ -67,7 +68,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
     SDL_RenderClear            (app->renderer         );
-    SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
+
+    uint64_t const freq = SDL_GetPerformanceFrequency(),
+                  start = SDL_GetPerformanceCounter();
     for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) {
         float const fx = (float)x,
@@ -77,10 +80,22 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                                        cx,cy,r);
         if (circle.lo < 0 && circle.hi < 0) {
             SDL_FRect const px = {fx,fy,1,1};
-            SDL_RenderFillRect(app->renderer, &px);
+            SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
+            SDL_RenderFillRect         (app->renderer, &px);
+        }
+        if (circle.lo < 0 && circle.hi >= 0) {
+            SDL_FRect const px = {fx,fy,1,1};
+            SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,1);
+            SDL_RenderFillRect         (app->renderer, &px);
         }
     }
-    SDL_RenderPresent(app->renderer);
+    uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
 
+    char txt[128];
+    snprintf(txt, sizeof txt, "%.0fµs", (double)elapsed * 1e6 / (double)freq);
+    SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
+    SDL_RenderDebugText        (app->renderer, 0,4, txt);
+
+    SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
 }
