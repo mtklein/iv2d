@@ -21,8 +21,8 @@ iv iv_mul(iv x, iv y) {
                 c = x.lo * y.hi,
                 d = x.hi * y.hi;
     return (iv) {
-        fminf(fminf(a,b), fminf(c,d)),
-        fmaxf(fmaxf(a,b), fmaxf(c,d)),
+        fminf(fminf(a,d), fminf(b,c)),
+        fmaxf(fmaxf(a,d), fmaxf(b,c)),
     };
 }
 
@@ -48,11 +48,5 @@ iv iv_sqrt(iv x) {
 }
 
 iv iv_square(iv x) {
-    float const a = x.lo * x.lo,
-                b = x.lo * x.hi,
-                c = x.hi * x.hi;
-    return (iv){
-        fminf(fminf(a,b), c),
-        fmaxf(fmaxf(a,b), c),
-    };
+    return iv_mul(x,x);
 }
