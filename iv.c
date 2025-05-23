@@ -46,3 +46,13 @@ iv iv_sqrt(iv x) {
         sqrtf(x.hi),
     };
 }
+
+iv iv_square(iv x) {
+    float const a = x.lo * x.lo,
+                b = x.lo * x.hi,
+                c = x.hi * x.hi;
+    return (iv){
+        fminf(fminf(a,b), c),
+        fmaxf(fmaxf(a,b), c),
+    };
+}

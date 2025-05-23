@@ -51,8 +51,8 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
 static iv cover_circle(iv x, iv y, float cx, float cy, float r) {
     iv const dx = iv_sub(x, (iv){cx,cx}),
              dy = iv_sub(y, (iv){cy,cy});
-    return iv_sub(iv_add(iv_mul(dx,dx),
-                         iv_mul(dy,dy)),
+    return iv_sub(iv_add(iv_square(dx),
+                         iv_square(dy)),
                   (iv){r*r,r*r});
 }
 
