@@ -82,8 +82,8 @@ static void render_circle(SDL_Renderer *renderer, struct circle c, int l, int t,
     if (edge.lo < 0 && edge.hi < 0) {
         // This rect has full coverage, drawn blue.
         SDL_FRect const rect = {(float)l, (float)t, (float)(r-l), (float)(b-t)};
-        SDL_SetRenderDrawColorFloat(renderer, 0,0,1,1);
-        SDL_RenderFillRect         (renderer, &rect);
+        SDL_SetRenderDrawColor(renderer, 138,145,247,255);
+        SDL_RenderFillRect    (renderer, &rect);
     }
     if (edge.lo < 0 && edge.hi >= 0) {
         int const x = (l+r)/2,
@@ -91,8 +91,8 @@ static void render_circle(SDL_Renderer *renderer, struct circle c, int l, int t,
         if (l == x && t == y) {
             // This pixel has partial coverage, drawn green.
             SDL_FRect const rect = {(float)l, (float)t, 1,1};
-            SDL_SetRenderDrawColorFloat(renderer, 0,1,0,1);
-            SDL_RenderFillRect         (renderer, &rect);
+            SDL_SetRenderDrawColor(renderer, 97,175,75,255);
+            SDL_RenderFillRect    (renderer, &rect);
         } else {
             // This rect has partial coverage, split and recurse.
             render_circle(renderer, c, l,t, x,y);
@@ -130,16 +130,16 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             iv const edge = circle_edge(c, (iv){fx,fx+1}
                                          , (iv){fy,fy+1});
             if (edge.lo < 0 && edge.hi < 0) {
-                // Full coverage pixel, drawn black.
+                // Full coverage pixel, drawn grey.
                 SDL_FRect const px = {fx,fy,1,1};
-                SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
-                SDL_RenderFillRect         (app->renderer, &px);
+                SDL_SetRenderDrawColor(app->renderer, 155,155,155,255);
+                SDL_RenderFillRect    (app->renderer, &px);
             }
             if (edge.lo < 0 && edge.hi >= 0) {
                 // Partial coverage pixel, drawn red.
                 SDL_FRect const px = {fx,fy,1,1};
-                SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,1);
-                SDL_RenderFillRect         (app->renderer, &px);
+                SDL_SetRenderDrawColor(app->renderer, 203,137,135,255);
+                SDL_RenderFillRect    (app->renderer, &px);
             }
         }
     }
