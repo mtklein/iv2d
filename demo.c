@@ -142,17 +142,22 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     uint64_t const freq = SDL_GetPerformanceFrequency(),
                   start = SDL_GetPerformanceCounter();
 
+    int const l = (int)(c.x - c.r       ),
+              t = (int)(c.y - c.r       ),
+              r = (int)(c.x + c.r + 0.5f),
+              b = (int)(c.y + c.r + 0.5f);
+
     struct { uint8_t r,g,b; } full, part;
     app->fulls = app->parts = 0;
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        cover_circle(app, c, 0,0,w,h);
+        cover_circle(app, c, l,t,r,b);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
-        for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++) {
+        for (int y = t; y < b; y++)
+        for (int x = l; x < r; x++) {
             float const fx = (float)x,
                         fy = (float)y;
             iv const edge = circle_edge(c, (iv){fx,fx+1}
