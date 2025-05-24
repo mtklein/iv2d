@@ -1,6 +1,7 @@
 #include "iv.h"
 #include <stdio.h>
 
+#define len(x) (int)(sizeof(x) / sizeof(x[0]))
 #define expect(x) if (!(x)) dprintf(2, "%s:%d %s expect(%s)\n", __FILE__, __LINE__, __func__, #x), \
                             __builtin_debugtrap()
 
@@ -86,6 +87,16 @@ static void test_sqrt(void) {
     expect(equiv(z.hi, 4));
 }
 
+static void test_square(void) {
+    iv x[] = { {3,4}, {-3,4}, {-5,-1}, {0,4}, {-2,0}, {0,0} };
+    for (int i = 0; i < len(x); i++) {
+        iv const got = iv_square(x[i]),
+                want = iv_mul   (x[i], x[i]);
+        expect(equiv(got.lo, want.lo));
+        expect(equiv(got.hi, want.hi));
+    }
+}
+
 int main(void) {
     test_add();
     test_sub();
@@ -93,5 +104,6 @@ int main(void) {
     test_min();
     test_max();
     test_sqrt();
+    test_square();
     return 0;
 }

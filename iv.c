@@ -48,5 +48,14 @@ iv iv_sqrt(iv x) {
 }
 
 iv iv_square(iv x) {
-    return iv_mul(x,x);
+    // [+a,+b]^2 = [a^2, b^2]
+    // [-a,-b]^2 = [b^2, a^2]
+    // [-a,+b]^2 = [-a,+b] x [-a,+b] = [-ab, max(a^2,b^2)]
+    float const a2 = x.lo * x.lo,
+                ab = x.lo * x.hi,
+                b2 = x.hi * x.hi;
+    return (iv){
+        fminf(ab, fminf(a2, b2)),
+                  fmaxf(a2, b2) ,
+    };
 }
