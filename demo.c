@@ -142,10 +142,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     uint64_t const freq = SDL_GetPerformanceFrequency(),
                   start = SDL_GetPerformanceCounter();
 
-    int const l = (int)(c.x - c.r       ),
-              t = (int)(c.y - c.r       ),
-              r = (int)(c.x + c.r + 0.5f),
-              b = (int)(c.y + c.r + 0.5f);
+    int const l = (int)(c.x - c.r)    ,
+              t = (int)(c.y - c.r)    ,
+              r = (int)(c.x + c.r) + 1,
+              b = (int)(c.y + c.r) + 1;
 
     struct { uint8_t r,g,b; } full, part;
     app->fulls = app->parts = 0;
