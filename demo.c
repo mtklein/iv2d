@@ -65,28 +65,32 @@ static inline iv iv_(float x) {
     return (iv){x,x};
 }
 
-static iv circle_edge(float cx, float cy, float r, iv x, iv y) {
-    return iv_sub(iv_add(iv_square(iv_sub(x, iv_(cx))),
-                         iv_square(iv_sub(y, iv_(cy)))),
-                  iv_(r*r));
+struct circle {
+    float x,y,r;
+};
+
+static iv circle_edge(struct circle c, iv x, iv y) {
+    return iv_sub(iv_add(iv_square(iv_sub(x, iv_(c.x))),
+                         iv_square(iv_sub(y, iv_(c.y)))),
+                  iv_(c.r*c.r));
 }
 
-static void render_circle(SDL_Renderer *rend, float cx, float cy, float r, iv x, iv y) {
-    iv const circle = circle_edge(cx,cy,r,x,y);
+static void render_circle(SDL_Renderer *renderer, struct circle c, iv x, iv y) {
+    iv const edge = circle_edge(c,x,y);
 
-    if (circle.lo < 0 && circle.hi < 0) {
+    if (edge.lo < 0 && edge.hi < 0) {
         SDL_FRect const rect = {x.lo,y.lo, x.hi-x.lo,y.hi-y.lo};
-        SDL_SetRenderDrawColorFloat(rend, 0,0,1,1);
-        SDL_RenderFillRect         (rend, &rect);
+        SDL_SetRenderDrawColorFloat(renderer, 0,0,1,1);
+        SDL_RenderFillRect         (renderer, &rect);
     }
     /*
-    if (circle.lo < 0 && circle.hi >= 0) {
+    if (edge.lo < 0 && edge.hi >= 0) {
         float const xm = (x.lo + x.hi) / 2,
                     ym = (y.lo + y.hi) / 2;
-        if (x.lo < xm && y.lo < ym) { render_circle(rend,cx,cy,r, (iv){x.lo,xm}, (iv){y.lo,ym}); }
-        if (x.lo < xm && ym < y.hi) { render_circle(rend,cx,cy,r, (iv){x.lo,xm}, (iv){ym,y.hi}); }
-        if (xm < x.hi && y.lo < ym) { render_circle(rend,cx,cy,r, (iv){xm,x.hi}, (iv){y.lo,ym}); }
-        if (xm < x.hi && ym < y.hi) { render_circle(rend,cx,cy,r, (iv){xm,x.hi}, (iv){ym,y.hi}); }
+        if (x.lo < xm && y.lo < ym) { render_circle(renderer,c, (iv){x.lo,xm}, (iv){y.lo,ym}); }
+        if (x.lo < xm && ym < y.hi) { render_circle(renderer,c, (iv){x.lo,xm}, (iv){ym,y.hi}); }
+        if (xm < x.hi && y.lo < ym) { render_circle(renderer,c, (iv){xm,x.hi}, (iv){y.lo,ym}); }
+        if (xm < x.hi && ym < y.hi) { render_circle(renderer,c, (iv){xm,x.hi}, (iv){ym,y.hi}); }
     }
     */
 }
@@ -99,8 +103,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
-                cy = 0.5f * (float)h,
-                r  = 0.5f * fminf(cx,cy);
+                cy = 0.5f * (float)h;
+    struct circle const c = { cx,cy, 0.5f*fminf(cx,cy) };
 
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
     SDL_RenderClear            (app->renderer         );
@@ -109,20 +113,20 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                   start = SDL_GetPerformanceCounter();
 
     if (app->mode) {
-        render_circle(app->renderer, cx,cy,r, (iv){0,(float)w}, (iv){0,(float)h});
+        render_circle(app->renderer, c, (iv){0,(float)w}, (iv){0,(float)h});
     } else {
         for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++) {
             float const fx = (float)x,
                         fy = (float)y;
-            iv const circle = circle_edge(cx,cy,r, (iv){fx,fx+1}
-                                                 , (iv){fy,fy+1});
-            if (circle.lo < 0 && circle.hi < 0) {
+            iv const edge = circle_edge(c, (iv){fx,fx+1}
+                                         , (iv){fy,fy+1});
+            if (edge.lo < 0 && edge.hi < 0) {
                 SDL_FRect const px = {fx,fy,1,1};
                 SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
                 SDL_RenderFillRect         (app->renderer, &px);
             }
-            if (circle.lo < 0 && circle.hi >= 0) {
+            if (edge.lo < 0 && edge.hi >= 0) {
                 SDL_FRect const px = {fx,fy,1,1};
                 SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,1);
                 SDL_RenderFillRect         (app->renderer, &px);
