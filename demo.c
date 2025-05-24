@@ -75,24 +75,32 @@ static iv circle_edge(struct circle c, iv x, iv y) {
                   iv_(c.r*c.r));
 }
 
-static void render_circle(SDL_Renderer *renderer, struct circle c, iv x, iv y) {
-    iv const edge = circle_edge(c,x,y);
+static void render_circle(SDL_Renderer *renderer, struct circle c, int l, int t, int r, int b) {
+    iv const edge = circle_edge(c, (iv){(float)l, (float)r}
+                                 , (iv){(float)t, (float)b});
 
     if (edge.lo < 0 && edge.hi < 0) {
-        SDL_FRect const rect = {x.lo,y.lo, x.hi-x.lo,y.hi-y.lo};
+        // This rect has full coverage, drawn blue.
+        SDL_FRect const rect = {(float)l, (float)t, (float)(r-l), (float)(b-t)};
         SDL_SetRenderDrawColorFloat(renderer, 0,0,1,1);
         SDL_RenderFillRect         (renderer, &rect);
     }
-    /*
     if (edge.lo < 0 && edge.hi >= 0) {
-        float const xm = (x.lo + x.hi) / 2,
-                    ym = (y.lo + y.hi) / 2;
-        if (x.lo < xm && y.lo < ym) { render_circle(renderer,c, (iv){x.lo,xm}, (iv){y.lo,ym}); }
-        if (x.lo < xm && ym < y.hi) { render_circle(renderer,c, (iv){x.lo,xm}, (iv){ym,y.hi}); }
-        if (xm < x.hi && y.lo < ym) { render_circle(renderer,c, (iv){xm,x.hi}, (iv){y.lo,ym}); }
-        if (xm < x.hi && ym < y.hi) { render_circle(renderer,c, (iv){xm,x.hi}, (iv){ym,y.hi}); }
+        int const x = (l+r)/2,
+                  y = (t+b)/2;
+        if (l == x && t == y) {
+            // This pixel has partial coverage, drawn green.
+            SDL_FRect const rect = {(float)l, (float)t, 1,1};
+            SDL_SetRenderDrawColorFloat(renderer, 0,1,0,1);
+            SDL_RenderFillRect         (renderer, &rect);
+        } else {
+            // This rect has partial coverage, split and recurse.
+            render_circle(renderer, c, l,t, x,y);
+            render_circle(renderer, c, l,y, x,b);
+            render_circle(renderer, c, x,t, r,y);
+            render_circle(renderer, c, x,y, r,b);
+        }
     }
-    */
 }
 
 
@@ -113,7 +121,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                   start = SDL_GetPerformanceCounter();
 
     if (app->mode) {
-        render_circle(app->renderer, c, (iv){0,(float)w}, (iv){0,(float)h});
+        render_circle(app->renderer, c, 0,0,w,h);
     } else {
         for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++) {
@@ -122,11 +130,13 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             iv const edge = circle_edge(c, (iv){fx,fx+1}
                                          , (iv){fy,fy+1});
             if (edge.lo < 0 && edge.hi < 0) {
+                // Full coverage pixel, drawn black.
                 SDL_FRect const px = {fx,fy,1,1};
                 SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
                 SDL_RenderFillRect         (app->renderer, &px);
             }
             if (edge.lo < 0 && edge.hi >= 0) {
+                // Partial coverage pixel, drawn red.
                 SDL_FRect const px = {fx,fy,1,1};
                 SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,1);
                 SDL_RenderFillRect         (app->renderer, &px);
