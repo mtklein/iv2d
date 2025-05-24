@@ -26,6 +26,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         SDL_Quit();
         return SDL_APP_FAILURE;
     }
+    SDL_SetWindowPosition(app->window, 0,0);
 
     return SDL_APP_CONTINUE;
 }
