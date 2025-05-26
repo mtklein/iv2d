@@ -3,8 +3,14 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
+
+// TODO
+//   - implement some sort of partial coverage in both modes
+//   - factor apart recursion/coverage strategy from edge function, should be mix'n'match
+//   - add a recurse-into-9-sub-parts strategy
+//   - how to best use vectorization?
+//   - cover with triangles, quads?
 
 typedef struct {
     SDL_Window   *window;
@@ -104,23 +110,25 @@ static void push_coverage(App *app, int l, int t, int r, int b, float cov) {
 }
 
 static void cover_circle(App *app, struct circle c, int l, int t, int r, int b) {
-    iv const edge = circle_edge(c, (iv){(float)l, (float)r}
-                                 , (iv){(float)t, (float)b});
+    if (l < r && t < b) {
+        iv const edge = circle_edge(c, (iv){(float)l, (float)r}
+                                     , (iv){(float)t, (float)b});
 
-    if (edge.lo < 0 && edge.hi < 0) {
-        push_coverage(app, l,t,r,b, 1.0f);
-    }
-    if (edge.lo < 0 && edge.hi >= 0) {
-        int const x = (l+r)/2,
-                  y = (t+b)/2;
-        if (l == x && t == y) {
-            push_coverage(app, l,t,r,b, 0.5f/*TODO*/);
-        } else {
-            // This rect has partial coverage, split and recurse.
-            cover_circle(app, c, l,t, x,y);
-            cover_circle(app, c, l,y, x,b);
-            cover_circle(app, c, x,t, r,y);
-            cover_circle(app, c, x,y, r,b);
+        if (edge.lo < 0 && edge.hi < 0) {
+            push_coverage(app, l,t,r,b, 1.0f);
+        }
+        if (edge.lo < 0 && edge.hi >= 0) {
+            int const x = (l+r)/2,
+                      y = (t+b)/2;
+            if (l == x && t == y) {
+                push_coverage(app, l,t,r,b, 0.5f/*TODO*/);
+            } else {
+                // This rect has partial coverage, split and recurse.
+                cover_circle(app, c, l,t, x,y);
+                cover_circle(app, c, l,y, x,b);
+                cover_circle(app, c, x,t, r,y);
+                cover_circle(app, c, x,y, r,b);
+            }
         }
     }
 }
@@ -136,8 +144,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                 cy = 0.5f * (float)h;
     struct circle const c = { cx,cy, 0.5f*fminf(cx,cy) };
 
-    SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
-    SDL_RenderClear            (app->renderer         );
+    SDL_SetRenderDrawColor(app->renderer, 255,255,255,255);
+    SDL_RenderClear       (app->renderer                 );
 
     uint64_t const freq = SDL_GetPerformanceFrequency(),
                   start = SDL_GetPerformanceCounter();
@@ -176,11 +184,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_RenderFillRects   (app->renderer, app->part, app->parts);
 
     uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
-    char txt[128];
-    snprintf(txt, sizeof txt, "%d %d full %d part %.0fµs",
-             app->mode, app->fulls, app->parts, (double)elapsed * 1e6 / (double)freq);
-    SDL_SetRenderDrawColor(app->renderer, 0,0,0,255);
-    SDL_RenderDebugText   (app->renderer, 0,4, txt);
+    SDL_SetRenderDrawColor   (app->renderer, 0,0,0,255);
+    SDL_RenderDebugTextFormat(app->renderer, 0,4,
+                              "%d %d full %d part %.0fµs", app->mode, app->fulls, app->parts
+                                                         , (double)elapsed * 1e6 / (double)freq);
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
