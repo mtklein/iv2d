@@ -1,33 +1,56 @@
 #include "iv2d.h"
+#include <assert.h>
 
-static void cover_4way_recursive(struct iv2d_rect        const  bounds,
-                                 struct iv2d_edge        const *edge,
-                                 struct iv2d_yield_coverage    *yield) {
-    iv const e = edge->fn(edge, (iv){(float)bounds.l, (float)bounds.r}
-                              , (iv){(float)bounds.t, (float)bounds.b});
+static float cover_subpixel(float l, float t, float r, float b,
+                            int limit, struct iv2d_edge const *edge) {
+    iv const e = edge->fn(edge, (iv){l,r}, (iv){t,b});
 
-    if (e.lo < 0 && e.hi < 0) {
-        yield->fn(yield, bounds, 1.0f);
+    if (e.lo > 0 && e.hi > 0) { return 0.0f; }
+    if (e.lo < 0 && e.hi < 0) { return 1.0f; }
+
+    if (limit <= 0) {
+        return 0.5f;
     }
-    if (e.lo < 0 && e.hi >= 0) {
-        int const x = (bounds.l+bounds.r)/2,
-                  y = (bounds.t+bounds.b)/2;
-        if (bounds.l == x && bounds.t == y) {
-            yield->fn(yield, bounds, 0.5f/*TODO*/);
-        } else {
-            iv2d_cover((struct iv2d_rect){bounds.l,bounds.t, x,y}, edge, yield);
-            iv2d_cover((struct iv2d_rect){bounds.l,y, x,bounds.b}, edge, yield);
-            iv2d_cover((struct iv2d_rect){x,bounds.t, bounds.r,y}, edge, yield);
-            iv2d_cover((struct iv2d_rect){x,y, bounds.r,bounds.b}, edge, yield);
-        }
-    }
+
+    float const x = (l + r) / 2,
+                y = (t + b) / 2;
+    return 0.25f * ( cover_subpixel(l,t, x,y, limit-1, edge)
+                   + cover_subpixel(l,y, x,b, limit-1, edge)
+                   + cover_subpixel(x,t, r,y, limit-1, edge)
+                   + cover_subpixel(x,y, r,b, limit-1, edge) );
 }
 
-void iv2d_cover(struct iv2d_rect        const  bounds,
-                struct iv2d_edge        const *edge,
-                struct iv2d_yield_coverage    *yield) {
-    if (bounds.l < bounds.r && bounds.t < bounds.b) {
-        cover_4way_recursive(bounds, edge, yield);
+void iv2d_cover(struct iv2d_rect const      bounds,
+                int              const      quality,
+                struct iv2d_edge const     *edge,
+                struct iv2d_yield_coverage *yield) {
+    int const l = bounds.l,
+              t = bounds.t,
+              r = bounds.r,
+              b = bounds.b;
+    if (l < r && t < b) {
+        iv const e = edge->fn(edge, (iv){(float)l, (float)r}
+                                  , (iv){(float)t, (float)b});
+
+        if (e.lo < 0 && e.hi < 0) {
+            yield->fn(yield, bounds, 1.0f);
+        }
+        if (e.lo < 0 && e.hi >= 0) {
+            int const x = (l+r)/2,
+                      y = (t+b)/2;
+            if (l == x && t == y) {
+                float const cov = cover_subpixel((float)l, (float)t,
+                                                 (float)r, (float)b,
+                                                 quality, edge);
+                assert(cov > 0);  // implied by e.lo < 0 && e.hi >= 0
+                yield->fn(yield, bounds, cov);
+            } else {
+                iv2d_cover((struct iv2d_rect){l,t, x,y}, quality, edge, yield);
+                iv2d_cover((struct iv2d_rect){l,y, x,b}, quality, edge, yield);
+                iv2d_cover((struct iv2d_rect){x,t, r,y}, quality, edge, yield);
+                iv2d_cover((struct iv2d_rect){x,y, r,b}, quality, edge, yield);
+            }
+        }
     }
 }
 

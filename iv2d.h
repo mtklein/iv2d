@@ -14,7 +14,10 @@ struct iv2d_yield_coverage {
     void (*fn)(struct iv2d_yield_coverage*, struct iv2d_rect bounds, float coverage);
 };
 
-void iv2d_cover(struct iv2d_rect bounds, struct iv2d_edge const*, struct iv2d_yield_coverage*);
+void iv2d_cover(struct iv2d_rect bounds,
+                int              quality,
+                struct iv2d_edge const*,
+                struct iv2d_yield_coverage*);
 
 struct iv2d_circle {
     struct iv2d_edge edge;
