@@ -12,7 +12,7 @@
 //   - cover with triangles, quads?
 
 struct coverage_for_SDL {
-    struct iv2d_yield_coverage yield;
+    struct iv2d_coverage_cb cb;
 
     SDL_FRect *part,*full;
     float     *part_cov;
@@ -20,9 +20,8 @@ struct coverage_for_SDL {
     int        fulls, full_cap;
 };
 
-static void yield_coverage_for_SDL(struct iv2d_yield_coverage *yield,
-                                   struct iv2d_rect bounds, float c) {
-    struct coverage_for_SDL *cov = (struct coverage_for_SDL*)yield;
+static void coverage_for_SDL(struct iv2d_coverage_cb *self, struct iv2d_rect bounds, float c) {
+    struct coverage_for_SDL *cov = (struct coverage_for_SDL*)self;
 
     SDL_FRect const rect = {
         .x = (float)bounds.l,
@@ -61,7 +60,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 
     struct app *app = *ctx = calloc(1, sizeof *app);
     app->quality = argc > 1 ? atoi(argv[1]) : 0;
-    app->cov.yield.fn = yield_coverage_for_SDL;
+    app->cov.cb.fn = coverage_for_SDL;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
@@ -150,7 +149,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     double const start_us = now_us();
 
-    iv2d_cover(bounds, app->quality, &c.edge, &cov->yield);
+    iv2d_cover(bounds, app->quality, &c.edge, &cov->cb);
     double const cover_us = now_us() - start_us;
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);

@@ -20,10 +20,10 @@ static float cover_subpixel(float l, float t, float r, float b,
                    + cover_subpixel(x,y, r,b, limit-1, edge) );
 }
 
-void iv2d_cover(struct iv2d_rect const      bounds,
-                int              const      quality,
-                struct iv2d_edge const     *edge,
-                struct iv2d_yield_coverage *yield) {
+void iv2d_cover(struct iv2d_rect const   bounds,
+                int              const   quality,
+                struct iv2d_edge const  *edge,
+                struct iv2d_coverage_cb *yield) {
     int const l = bounds.l,
               t = bounds.t,
               r = bounds.r,
