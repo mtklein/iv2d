@@ -13,7 +13,7 @@
 //   - cover with triangles, quads?
 
 struct coverage_for_SDL {
-    struct iv2d_cover_yield yield;
+    struct iv2d_yield_coverage yield;
 
     SDL_FRect *part,*full;
     float     *part_cov;
@@ -21,8 +21,9 @@ struct coverage_for_SDL {
     int        fulls, full_cap;
 };
 
-static void yield_coverage_for_SDL(struct iv2d_cover_yield *y, struct iv2d_rect bounds, float c) {
-    struct coverage_for_SDL *cov = (struct coverage_for_SDL*)y;
+static void yield_coverage_for_SDL(struct iv2d_yield_coverage *yield,
+                                   struct iv2d_rect bounds, float c) {
+    struct coverage_for_SDL *cov = (struct coverage_for_SDL*)yield;
 
     SDL_FRect const rect = {
         .x = (float)bounds.l,

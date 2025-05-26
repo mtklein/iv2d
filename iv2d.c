@@ -2,7 +2,7 @@
 
 static void cover_4way_recursive(struct iv2d_rect        const  bounds,
                                  struct iv2d_edge        const *edge,
-                                 struct iv2d_cover_yield       *yield) {
+                                 struct iv2d_yield_coverage    *yield) {
     iv const e = edge->fn(edge, (iv){(float)bounds.l, (float)bounds.r}
                               , (iv){(float)bounds.t, (float)bounds.b});
 
@@ -25,7 +25,7 @@ static void cover_4way_recursive(struct iv2d_rect        const  bounds,
 
 void iv2d_cover(struct iv2d_rect        const  bounds,
                 struct iv2d_edge        const *edge,
-                struct iv2d_cover_yield       *yield) {
+                struct iv2d_yield_coverage    *yield) {
     if (bounds.l < bounds.r && bounds.t < bounds.b) {
         cover_4way_recursive(bounds, edge, yield);
     }
