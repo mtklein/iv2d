@@ -123,7 +123,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
-    struct iv2d_circle const c = { cx,cy, 0.5f*fminf(cx,cy) };
+
+    struct iv2d_circle const c = iv2d_circle(cx,cy, 0.5f*fminf(cx,cy));
 
     SDL_SetRenderDrawColor(app->renderer, 255,255,255,255);
     SDL_RenderClear       (app->renderer                 );
@@ -144,8 +145,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        iv2d_cover(bounds,
-                   (struct iv2d_edge){iv2d_circle, &c},
+        iv2d_cover(bounds, &c.edge,
                    (struct iv2d_cover_yield){yield_coverage_for_SDL, cov});
     } else {
         full.r = 155; full.g = 155; full.b = 155;
@@ -155,7 +155,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             struct iv2d_rect const pixel = {x,y,x+1,y+1};
             float const fx = (float)x,
                         fy = (float)y;
-            iv const e = iv2d_circle((iv){fx,fx+1}, (iv){fy,fy+1}, &c);
+            iv const e = c.edge.fn(&c, (iv){fx,fx+1}
+                                     , (iv){fy,fy+1});
             if (e.lo < 0 && e.hi < 0) {
                 yield_coverage_for_SDL(pixel, 1.0f, cov);
             }

@@ -7,8 +7,7 @@ struct iv2d_rect {
 };
 
 struct iv2d_edge {
-    iv        (*fn)(iv x, iv y, void const *ctx);
-    void const *ctx;
+    iv (*fn)(void const *iv2d_edge, iv x, iv y);
 };
 
 struct iv2d_cover_yield {
@@ -16,9 +15,10 @@ struct iv2d_cover_yield {
     void  *ctx;
 };
 
-void iv2d_cover(struct iv2d_rect bounds, struct iv2d_edge, struct iv2d_cover_yield);
+void iv2d_cover(struct iv2d_rect bounds, struct iv2d_edge const*, struct iv2d_cover_yield);
 
 struct iv2d_circle {
-    float x,y,r;
+    struct iv2d_edge edge;
+    float            x,y,r,padding;
 };
-iv iv2d_circle(iv x, iv y, void const *iv2d_circle);
+struct iv2d_circle iv2d_circle(float x, float y, float r);
