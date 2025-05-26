@@ -123,17 +123,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                 cy = 0.5f * (float)h;
     struct iv2d_circle const c = iv2d_circle(cx,cy, 0.5f*(cx < cy ? cx : cy));
 
-    // TODO: provide iv2d_bounds() to calculate this!
-    struct iv2d_rect const bounds = {
-        .l = (int)(c.x - c.r)    ,
-        .t = (int)(c.y - c.r)    ,
-        .r = (int)(c.x + c.r) + 1,
-        .b = (int)(c.y + c.r) + 1,
-    };
-
     double const start = now_us();
     {
-        iv2d_cover(bounds, app->quality, &c.region, &app->cov_cb);
+        iv2d_cover((struct iv2d_rect){0,0,w,h}, app->quality, &c.region, &app->cov_cb);
     }
     double const elapsed = now_us() - start;
 
