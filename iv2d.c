@@ -31,8 +31,8 @@ void iv2d_cover(struct iv2d_rect        const  bounds,
     }
 }
 
-static iv circle_edge(void const *edge, iv x, iv y) {
-    struct iv2d_circle const *c = edge;
+static iv circle_edge(struct iv2d_edge const *edge, iv x, iv y) {
+    struct iv2d_circle const *c = (struct iv2d_circle const*)edge;
     return iv_sub(iv_add(iv_square(iv_sub(x, (iv){c->x,c->x})),
                          iv_square(iv_sub(y, (iv){c->y,c->y}))),
                   (iv){c->r*c->r, c->r*c->r});

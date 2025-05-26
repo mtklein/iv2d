@@ -7,11 +7,11 @@ struct iv2d_rect {
 };
 
 struct iv2d_edge {
-    iv (*fn)(void const *iv2d_edge, iv x, iv y);
+    iv (*fn)(struct iv2d_edge const*, iv x, iv y);
 };
 
 struct iv2d_cover_yield {
-    void (*fn)(void *iv2d_cover_yield, struct iv2d_rect bounds, float cov);
+    void (*fn)(struct iv2d_cover_yield*, struct iv2d_rect bounds, float cov);
 };
 
 void iv2d_cover(struct iv2d_rect bounds, struct iv2d_edge const*, struct iv2d_cover_yield*);

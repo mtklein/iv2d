@@ -21,8 +21,8 @@ struct coverage_for_SDL {
     int        fulls, full_cap;
 };
 
-static void yield_coverage_for_SDL(void *ctx, struct iv2d_rect bounds, float c) {
-    struct coverage_for_SDL *cov = ctx;
+static void yield_coverage_for_SDL(struct iv2d_cover_yield *y, struct iv2d_rect bounds, float c) {
+    struct coverage_for_SDL *cov = (struct coverage_for_SDL*)y;
 
     SDL_FRect const rect = {
         .x = (float)bounds.l,
@@ -157,8 +157,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             struct iv2d_rect const pixel = {x,y,x+1,y+1};
             float const fx = (float)x,
                         fy = (float)y;
-            iv const e = c.edge.fn(&c, (iv){fx,fx+1}
-                                     , (iv){fy,fy+1});
+            iv const e = c.edge.fn(&c.edge, (iv){fx,fx+1}
+                                          , (iv){fy,fy+1});
             if (e.lo < 0 && e.hi < 0) {
                 cov->yield.fn(&cov->yield, pixel, 1.0f);
             }
