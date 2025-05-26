@@ -13,13 +13,15 @@
 //   - cover with triangles, quads?
 
 struct coverage_for_SDL {
+    struct iv2d_cover_yield yield;
+
     SDL_FRect *part,*full;
     float     *part_cov;
     int        parts, part_cap;
     int        fulls, full_cap;
 };
 
-static void yield_coverage_for_SDL(struct iv2d_rect bounds, float c, void *ctx) {
+static void yield_coverage_for_SDL(void *ctx, struct iv2d_rect bounds, float c) {
     struct coverage_for_SDL *cov = ctx;
 
     SDL_FRect const rect = {
@@ -59,6 +61,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 
     struct app *app = *ctx = calloc(1, sizeof *app);
     app->mode = argc > 1 ? atoi(argv[1]) : 0;
+    app->cov.yield.fn = yield_coverage_for_SDL;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
@@ -145,8 +148,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        iv2d_cover(bounds, &c.edge,
-                   (struct iv2d_cover_yield){yield_coverage_for_SDL, cov});
+        iv2d_cover(bounds, &c.edge, &cov->yield);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
@@ -158,10 +160,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             iv const e = c.edge.fn(&c, (iv){fx,fx+1}
                                      , (iv){fy,fy+1});
             if (e.lo < 0 && e.hi < 0) {
-                yield_coverage_for_SDL(pixel, 1.0f, cov);
+                cov->yield.fn(&cov->yield, pixel, 1.0f);
             }
             if (e.lo < 0 && e.hi >= 0) {
-                yield_coverage_for_SDL(pixel, 0.5f/*TODO*/, cov);
+                cov->yield.fn(&cov->yield, pixel, 0.5f/*TODO*/);
             }
         }
     }
