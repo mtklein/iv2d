@@ -144,7 +144,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        iv2d_cover(bounds, iv2d_circle,&c, yield_coverage_for_SDL,cov);
+        iv2d_cover(bounds,
+                   (struct iv2d_edge){iv2d_circle, &c},
+                   (struct iv2d_cover_yield){yield_coverage_for_SDL, cov});
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
