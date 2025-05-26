@@ -1,25 +1,58 @@
 #include "iv2d.h"
 #include <assert.h>
 
-// TODO: cover_subpixel is only called at the top level when we already know e will be partial
-//       rewrite so that's an invariant, to avoid testing edge->fn twice on the whole subpixel?
+// TODO: we are testing      e.lo <  0 && e.hi <  0  for insideness
+//       or should that be   e.lo <  0 && e.hi <= 0  ?
+//       or maybe even       e.lo <= 0 && e.hi <= 0  ?
+
 static float cover_subpixel(float l, float t, float r, float b,
-                            int limit, struct iv2d_edge const *edge) {
-    iv const e = edge->fn(edge, (iv){l,r}, (iv){t,b});
+                            iv e, int limit, struct iv2d_edge const *edge) {
+    // We may assume cover_subpixel() is only called on areas with uncertain coverage.
+    assert(e.lo < 0 && e.hi >= 0);
 
-    if (e.lo > 0 && e.hi > 0) { return 0.0f; }
-    if (e.lo < 0 && e.hi < 0) { return 1.0f; }
+    if (limit == 0) {
+        // We're at our recursion limit, so we just have to guess.
+        // A basic unbiased guess is half coverage,
+        #if 0
+            return 0.5f;
 
-    if (limit <= 0) {
-        return 0.5f;
+        // But we can do a whole lot better---some might say unreasonably so---by examining e.
+        // If negative edge values are inside, and positive outside, we'll guess the coverage
+        // is approximately the fraction of the edge interval that is negative.
+        //
+        // This approximation makes quality=0 entirely acceptable, and quality=1 appear to my
+        // eye almost perfect, where using 0.5 needs quality=2 or quality=3 to look good, and
+        // something like quality=6 to look almost perfect.  This is _huge_.
+        #else
+            return -e.lo / (e.hi - e.lo);
+        #endif
     }
 
     float const x = (l + r) / 2,
                 y = (t + b) / 2;
-    return 0.25f * ( cover_subpixel(l,t, x,y, limit-1, edge)
-                   + cover_subpixel(l,y, x,b, limit-1, edge)
-                   + cover_subpixel(x,t, r,y, limit-1, edge)
-                   + cover_subpixel(x,y, r,b, limit-1, edge) );
+
+    float cov = 0.0f;
+    {
+        e = edge->fn(edge, (iv){l,x}, (iv){t,y});
+        if (e.lo < 0 && e.hi <  0) { cov += 1; }
+        if (e.lo < 0 && e.hi >= 0) { cov += cover_subpixel(l,t,x,y, e,limit-1,edge); }
+    }
+    {
+        e = edge->fn(edge, (iv){l,x}, (iv){y,b});
+        if (e.lo < 0 && e.hi <  0) { cov += 1; }
+        if (e.lo < 0 && e.hi >= 0) { cov += cover_subpixel(l,y,x,b, e,limit-1,edge); }
+    }
+    {
+        e = edge->fn(edge, (iv){x,r}, (iv){t,y});
+        if (e.lo < 0 && e.hi <  0) { cov += 1; }
+        if (e.lo < 0 && e.hi >= 0) { cov += cover_subpixel(x,t,r,y, e,limit-1,edge); }
+    }
+    {
+        e = edge->fn(edge, (iv){x,r}, (iv){y,b});
+        if (e.lo < 0 && e.hi <  0) { cov += 1; }
+        if (e.lo < 0 && e.hi >= 0) { cov += cover_subpixel(x,y,r,b, e,limit-1,edge); }
+    }
+    return cov * 0.25f;
 }
 
 void iv2d_cover(struct iv2d_rect const   bounds,
@@ -44,9 +77,9 @@ void iv2d_cover(struct iv2d_rect const   bounds,
                 if (quality >= 0) {
                     float const cov = cover_subpixel((float)l, (float)t,
                                                      (float)r, (float)b,
-                                                     quality, edge);
-                    assert(cov > 0);  // implied by e.lo < 0 && e.hi >= 0
-                    assert(cov < 1);  // would have been picked up by e.lo < 0 && e.hi < 0
+                                                     e, quality, edge);
+                    assert(cov >  0);  // implied by e.lo < 0 && e.hi >= 0
+                    assert(cov <= 1);  // TODO: should this be cov < 1?
                     yield->fn(yield, bounds, cov);
                 }
             } else {
