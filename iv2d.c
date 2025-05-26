@@ -1,6 +1,8 @@
 #include "iv2d.h"
 #include <assert.h>
 
+// TODO: cover_subpixel is only called at the top level when we already know e will be partial
+//       rewrite so that's an invariant, to avoid testing edge->fn twice on the whole subpixel?
 static float cover_subpixel(float l, float t, float r, float b,
                             int limit, struct iv2d_edge const *edge) {
     iv const e = edge->fn(edge, (iv){l,r}, (iv){t,b});
@@ -39,11 +41,14 @@ void iv2d_cover(struct iv2d_rect const   bounds,
             int const x = (l+r)/2,
                       y = (t+b)/2;
             if (l == x && t == y) {
-                float const cov = cover_subpixel((float)l, (float)t,
-                                                 (float)r, (float)b,
-                                                 quality, edge);
-                assert(cov > 0);  // implied by e.lo < 0 && e.hi >= 0
-                yield->fn(yield, bounds, cov);
+                if (quality >= 0) {
+                    float const cov = cover_subpixel((float)l, (float)t,
+                                                     (float)r, (float)b,
+                                                     quality, edge);
+                    assert(cov > 0);  // implied by e.lo < 0 && e.hi >= 0
+                    assert(cov < 1);  // would have been picked up by e.lo < 0 && e.hi < 0
+                    yield->fn(yield, bounds, cov);
+                }
             } else {
                 iv2d_cover((struct iv2d_rect){l,t, x,y}, quality, edge, yield);
                 iv2d_cover((struct iv2d_rect){l,y, x,b}, quality, edge, yield);
@@ -56,10 +61,14 @@ void iv2d_cover(struct iv2d_rect const   bounds,
 
 static iv circle_edge(struct iv2d_edge const *edge, iv x, iv y) {
     struct iv2d_circle const *c = (struct iv2d_circle const*)edge;
-    return iv_sub(iv_add(iv_square(iv_sub(x, (iv){c->x,c->x})),
-                         iv_square(iv_sub(y, (iv){c->y,c->y}))),
+
+    return iv_sub(iv_add(iv_square(iv_sub(x, (iv){c->x, c->x})),
+                         iv_square(iv_sub(y, (iv){c->y, c->y}))),
                   (iv){c->r*c->r, c->r*c->r});
 }
 struct iv2d_circle iv2d_circle(float x, float y, float r) {
-    return (struct iv2d_circle){.edge={circle_edge}, .x=x, .y=y, .r=r};
+    return (struct iv2d_circle){
+        .edge={circle_edge},
+        .x=x, .y=y, .r=r,
+    };
 }

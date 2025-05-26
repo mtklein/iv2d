@@ -7,9 +7,12 @@
 #include <stdlib.h>
 
 // TODO
-//   - add a recurse-into-9-sub-parts strategy
+//   - add a recurse-into-9-sub-parts coverage strategy
+//   - add a scanlines coverage strategy
 //   - how to best use vectorization?
-//   - cover with triangles, quads?
+//      - in subpixels, kind of obvious
+//      - at larger scale?
+//   - cover with other shapes?  triangles, quads?
 
 struct coverage_for_SDL {
     struct iv2d_coverage_cb cb;
