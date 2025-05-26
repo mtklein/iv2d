@@ -12,23 +12,26 @@
 //   - how to best use vectorization?
 //   - cover with triangles, quads?
 
-typedef struct {
-    SDL_Window   *window;
-    SDL_Renderer *renderer;
-    int           mode,unused;
-
+struct coverage {
     SDL_FRect *part,*full;
     float     *part_cov;
     int        parts, part_cap;
     int        fulls, full_cap;
-} App;
+};
+
+struct app {
+    SDL_Window     *window;
+    SDL_Renderer   *renderer;
+    int             mode,unused;
+    struct coverage cov;
+};
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         return SDL_APP_FAILURE;
     }
 
-    App *app = *ctx = calloc(1, sizeof *app);
+    struct app *app = *ctx = calloc(1, sizeof *app);
     app->mode = argc > 1 ? atoi(argv[1]) : 0;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
@@ -43,20 +46,20 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 }
 
 void SDL_AppQuit(void *ctx, SDL_AppResult res) {
-    App *app = ctx;
+    struct app *app = ctx;
     (void)res;
 
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow  (app->window);
-    free(app->full);
-    free(app->part);
-    free(app->part_cov);
+    free(app->cov.full);
+    free(app->cov.part);
+    free(app->cov.part_cov);
     free(app);
     SDL_Quit();
 }
 
 SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
-    App *app = ctx;
+    struct app *app = ctx;
     switch (event->type) {
         default: break;
         case SDL_EVENT_QUIT: return SDL_APP_SUCCESS;
@@ -90,44 +93,44 @@ static iv circle_edge(struct circle c, iv x, iv y) {
                   iv_(c.r*c.r));
 }
 
-static void push_coverage(App *app, int l, int t, int r, int b, float cov) {
+static void push_coverage(struct coverage *cov, int l, int t, int r, int b, float v) {
     SDL_FRect const rect = { (float)l, (float)t, (float)(r-l), (float)(b-t) };
-    if (cov == 1.0f) {
-        if (app->fulls == app->full_cap) {
-            app->full_cap = app->full_cap ? 2*app->full_cap : 1;
-            app->full = realloc(app->full, (size_t)app->full_cap * sizeof *app->full);
+    if (v == 1.0f) {
+        if (cov->fulls == cov->full_cap) {
+            cov->full_cap = cov->full_cap ? 2*cov->full_cap : 1;
+            cov->full = realloc(cov->full, (size_t)cov->full_cap * sizeof *cov->full);
         }
-        app->full[app->fulls++] = rect;
+        cov->full[cov->fulls++] = rect;
     } else {
-        if (app->parts == app->part_cap) {
-            app->part_cap = app->part_cap ? 2*app->part_cap : 1;
-            app->part_cov = realloc(app->part_cov, (size_t)app->part_cap * sizeof *app->part_cov);
-            app->part     = realloc(app->part    , (size_t)app->part_cap * sizeof *app->part    );
+        if (cov->parts == cov->part_cap) {
+            cov->part_cap = cov->part_cap ? 2*cov->part_cap : 1;
+            cov->part_cov = realloc(cov->part_cov, (size_t)cov->part_cap * sizeof *cov->part_cov);
+            cov->part     = realloc(cov->part    , (size_t)cov->part_cap * sizeof *cov->part    );
         }
-        app->part_cov[app->parts  ] = cov;
-        app->part    [app->parts++] = rect;
+        cov->part_cov[cov->parts  ] = v;
+        cov->part    [cov->parts++] = rect;
     }
 }
 
-static void cover_circle(App *app, struct circle c, int l, int t, int r, int b) {
+static void cover_circle(struct coverage *cov, struct circle c, int l, int t, int r, int b) {
     if (l < r && t < b) {
         iv const edge = circle_edge(c, (iv){(float)l, (float)r}
                                      , (iv){(float)t, (float)b});
 
         if (edge.lo < 0 && edge.hi < 0) {
-            push_coverage(app, l,t,r,b, 1.0f);
+            push_coverage(cov, l,t,r,b, 1.0f);
         }
         if (edge.lo < 0 && edge.hi >= 0) {
             int const x = (l+r)/2,
                       y = (t+b)/2;
             if (l == x && t == y) {
-                push_coverage(app, l,t,r,b, 0.5f/*TODO*/);
+                push_coverage(cov, l,t,r,b, 0.5f/*TODO*/);
             } else {
                 // This rect has partial coverage, split and recurse.
-                cover_circle(app, c, l,t, x,y);
-                cover_circle(app, c, l,y, x,b);
-                cover_circle(app, c, x,t, r,y);
-                cover_circle(app, c, x,y, r,b);
+                cover_circle(cov, c, l,t, x,y);
+                cover_circle(cov, c, l,y, x,b);
+                cover_circle(cov, c, x,t, r,y);
+                cover_circle(cov, c, x,y, r,b);
             }
         }
     }
@@ -135,7 +138,7 @@ static void cover_circle(App *app, struct circle c, int l, int t, int r, int b) 
 
 
 SDL_AppResult SDL_AppIterate(void *ctx) {
-    App *app = ctx;
+    struct app *app = ctx;
 
     int w,h;
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
@@ -155,12 +158,14 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
               r = (int)(c.x + c.r) + 1,
               b = (int)(c.y + c.r) + 1;
 
+    struct coverage *cov = &app->cov;
+    cov->fulls = cov->parts = 0;
+
     struct { uint8_t r,g,b; } full, part;
-    app->fulls = app->parts = 0;
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        cover_circle(app, c, l,t,r,b);
+        cover_circle(cov, c, l,t,r,b);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
@@ -171,22 +176,22 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
             iv const edge = circle_edge(c, (iv){fx,fx+1}
                                          , (iv){fy,fy+1});
             if (edge.lo < 0 && edge.hi < 0) {
-                push_coverage(app, x,y,x+1,y+1, 1.0f);
+                push_coverage(cov, x,y,x+1,y+1, 1.0f);
             }
             if (edge.lo < 0 && edge.hi >= 0) {
-                push_coverage(app, x,y,x+1,y+1, 0.5f/*TODO*/);
+                push_coverage(cov, x,y,x+1,y+1, 0.5f/*TODO*/);
             }
         }
     }
     SDL_SetRenderDrawColor(app->renderer, full.r, full.g, full.b, 255);
-    SDL_RenderFillRects   (app->renderer, app->full, app->fulls);
+    SDL_RenderFillRects   (app->renderer, cov->full, cov->fulls);
     SDL_SetRenderDrawColor(app->renderer, part.r, part.g, part.b, 255);
-    SDL_RenderFillRects   (app->renderer, app->part, app->parts);
+    SDL_RenderFillRects   (app->renderer, cov->part, cov->parts);
 
     uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
     SDL_SetRenderDrawColor   (app->renderer, 0,0,0,255);
     SDL_RenderDebugTextFormat(app->renderer, 0,4,
-                              "%d %d full %d part %.0fµs", app->mode, app->fulls, app->parts
+                              "%d %d full %d part %.0fµs", app->mode, cov->fulls, cov->parts
                                                          , (double)elapsed * 1e6 / (double)freq);
 
     SDL_RenderPresent(app->renderer);
