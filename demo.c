@@ -105,6 +105,16 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
+static double now_us(void) {
+    static double scale = -1;
+    if (scale < 0) {
+        uint64_t freq = SDL_GetPerformanceFrequency();
+        scale = 1e6 / (double)freq;
+    }
+    uint64_t now = SDL_GetPerformanceCounter();
+    return (double)now * scale;
+}
+
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
 
@@ -118,48 +128,53 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_SetRenderDrawColor(app->renderer, 255,255,255,255);
     SDL_RenderClear       (app->renderer                 );
 
-    uint64_t const freq = SDL_GetPerformanceFrequency(),
-                  start = SDL_GetPerformanceCounter();
-
-    int const l = (int)(c.x - c.r)    ,
-              t = (int)(c.y - c.r)    ,
-              r = (int)(c.x + c.r) + 1,
-              b = (int)(c.y + c.r) + 1;
+    struct iv2d_rect const bounds = {
+        .l = (int)(c.x - c.r)    ,
+        .t = (int)(c.y - c.r)    ,
+        .r = (int)(c.x + c.r) + 1,
+        .b = (int)(c.y + c.r) + 1,
+    };
 
     struct coverage_for_SDL *cov = &app->cov;
     cov->fulls = cov->parts = 0;
 
     struct { uint8_t r,g,b; } full, part;
+
+    double const start_us = now_us();
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        iv2d_cover((struct iv2d_rect){l,t,r,b}, iv2d_circle,&c, yield_coverage_for_SDL,cov);
+        iv2d_cover(bounds, iv2d_circle,&c, yield_coverage_for_SDL,cov);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
-        for (int y = t; y < b; y++)
-        for (int x = l; x < r; x++) {
+        for (int y = bounds.t; y < bounds.b; y++)
+        for (int x = bounds.l; x < bounds.r; x++) {
+            struct iv2d_rect const pixel = {x,y,x+1,y+1};
             float const fx = (float)x,
                         fy = (float)y;
             iv const e = iv2d_circle((iv){fx,fx+1}, (iv){fy,fy+1}, &c);
             if (e.lo < 0 && e.hi < 0) {
-                yield_coverage_for_SDL((struct iv2d_rect){x,y,x+1,y+1}, 1.0f, cov);
+                yield_coverage_for_SDL(pixel, 1.0f, cov);
             }
             if (e.lo < 0 && e.hi >= 0) {
-                yield_coverage_for_SDL((struct iv2d_rect){x,y,x+1,y+1}, 0.5f/*TODO*/, cov);
+                yield_coverage_for_SDL(pixel, 0.5f/*TODO*/, cov);
             }
         }
     }
-    SDL_SetRenderDrawColor(app->renderer, full.r, full.g, full.b, 255);
-    SDL_RenderFillRects   (app->renderer, cov->full, cov->fulls);
-    SDL_SetRenderDrawColor(app->renderer, part.r, part.g, part.b, 255);
-    SDL_RenderFillRects   (app->renderer, cov->part, cov->parts);
+    double const cover_us = now_us() - start_us;
 
-    uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
+    SDL_SetRenderDrawColor   (app->renderer, full.r, full.g, full.b, 255);
+    SDL_RenderFillRects      (app->renderer, cov->full, cov->fulls);
+    SDL_SetRenderDrawColor   (app->renderer, part.r, part.g, part.b, 255);
+    SDL_RenderFillRects      (app->renderer, cov->part, cov->parts);
+    double const issue_us = now_us() - start_us;
+
     SDL_SetRenderDrawColor   (app->renderer, 0,0,0,255);
     SDL_RenderDebugTextFormat(app->renderer, 0,4,
-                              "%d %d full %d part %.0fµs", app->mode, cov->fulls, cov->parts
-                                                         , (double)elapsed * 1e6 / (double)freq);
+                              "mode %d, %d full + %d partial, %.0f + %.0f = %.0fµs",
+                              app->mode, cov->fulls, cov->parts,
+                              cover_us, issue_us - cover_us, issue_us);
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
