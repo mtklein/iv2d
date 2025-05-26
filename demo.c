@@ -7,23 +7,52 @@
 
 // TODO
 //   - implement some sort of partial coverage in both modes
-//   - factor apart recursion/coverage strategy from edge function, should be mix'n'match
 //   - add a recurse-into-9-sub-parts strategy
 //   - how to best use vectorization?
 //   - cover with triangles, quads?
 
-struct coverage {
+struct rect {
+    int l,t,r,b;
+};
+
+struct coverage_for_SDL {
     SDL_FRect *part,*full;
     float     *part_cov;
     int        parts, part_cap;
     int        fulls, full_cap;
 };
 
+static void yield_coverage_for_SDL(struct rect bounds, float c, void *ctx) {
+    struct coverage_for_SDL *cov = ctx;
+
+    SDL_FRect const rect = {
+        .x = (float)bounds.l,
+        .y = (float)bounds.t,
+        .w = (float)(bounds.r-bounds.l),
+        .h = (float)(bounds.b-bounds.t),
+    };
+    if (c == 1.0f) {
+        if (cov->fulls == cov->full_cap) {
+            cov->full_cap = cov->full_cap ? 2*cov->full_cap : 1;
+            cov->full = realloc(cov->full, (size_t)cov->full_cap * sizeof *cov->full);
+        }
+        cov->full[cov->fulls++] = rect;
+    } else {
+        if (cov->parts == cov->part_cap) {
+            cov->part_cap = cov->part_cap ? 2*cov->part_cap : 1;
+            cov->part_cov = realloc(cov->part_cov, (size_t)cov->part_cap * sizeof *cov->part_cov);
+            cov->part     = realloc(cov->part    , (size_t)cov->part_cap * sizeof *cov->part    );
+        }
+        cov->part_cov[cov->parts  ] = c;
+        cov->part    [cov->parts++] = rect;
+    }
+}
+
 struct app {
-    SDL_Window     *window;
-    SDL_Renderer   *renderer;
-    int             mode,unused;
-    struct coverage cov;
+    SDL_Window             *window;
+    SDL_Renderer           *renderer;
+    int                     mode,unused;
+    struct coverage_for_SDL cov;
 };
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
@@ -86,56 +115,41 @@ static inline iv iv_(float x) {
 struct circle {
     float x,y,r;
 };
-
-static iv circle_edge(struct circle c, iv x, iv y) {
-    return iv_sub(iv_add(iv_square(iv_sub(x, iv_(c.x))),
-                         iv_square(iv_sub(y, iv_(c.y)))),
-                  iv_(c.r*c.r));
+static iv circle(iv x, iv y, void *ctx) {
+    struct circle const *c = ctx;
+    return iv_sub(iv_add(iv_square(iv_sub(x, iv_(c->x))),
+                         iv_square(iv_sub(y, iv_(c->y)))),
+                  iv_(c->r*c->r));
 }
 
-static void push_coverage(struct coverage *cov, int l, int t, int r, int b, float v) {
-    SDL_FRect const rect = { (float)l, (float)t, (float)(r-l), (float)(b-t) };
-    if (v == 1.0f) {
-        if (cov->fulls == cov->full_cap) {
-            cov->full_cap = cov->full_cap ? 2*cov->full_cap : 1;
-            cov->full = realloc(cov->full, (size_t)cov->full_cap * sizeof *cov->full);
-        }
-        cov->full[cov->fulls++] = rect;
-    } else {
-        if (cov->parts == cov->part_cap) {
-            cov->part_cap = cov->part_cap ? 2*cov->part_cap : 1;
-            cov->part_cov = realloc(cov->part_cov, (size_t)cov->part_cap * sizeof *cov->part_cov);
-            cov->part     = realloc(cov->part    , (size_t)cov->part_cap * sizeof *cov->part    );
-        }
-        cov->part_cov[cov->parts  ] = v;
-        cov->part    [cov->parts++] = rect;
-    }
-}
-
-static void cover_circle(struct coverage *cov, struct circle c, int l, int t, int r, int b) {
+static void recursive_cover(struct rect bounds,
+                            iv (*edge)(iv x, iv y, void *ectx), void *ectx,
+                            void (*yield)(struct rect bounds, float c, void *yctx), void *yctx) {
+    int const l = bounds.l,
+              t = bounds.t,
+              r = bounds.r,
+              b = bounds.b;
     if (l < r && t < b) {
-        iv const edge = circle_edge(c, (iv){(float)l, (float)r}
-                                     , (iv){(float)t, (float)b});
+        iv const e = edge((iv){(float)l, (float)r}, (iv){(float)t, (float)b}, ectx);
 
-        if (edge.lo < 0 && edge.hi < 0) {
-            push_coverage(cov, l,t,r,b, 1.0f);
+        if (e.lo < 0 && e.hi < 0) {
+            yield(bounds, 1.0f, yctx);
         }
-        if (edge.lo < 0 && edge.hi >= 0) {
+        if (e.lo < 0 && e.hi >= 0) {
             int const x = (l+r)/2,
                       y = (t+b)/2;
             if (l == x && t == y) {
-                push_coverage(cov, l,t,r,b, 0.5f/*TODO*/);
+                yield(bounds, 0.5f/*TODO*/, yctx);
             } else {
                 // This rect has partial coverage, split and recurse.
-                cover_circle(cov, c, l,t, x,y);
-                cover_circle(cov, c, l,y, x,b);
-                cover_circle(cov, c, x,t, r,y);
-                cover_circle(cov, c, x,y, r,b);
+                recursive_cover((struct rect){l,t, x,y}, edge,ectx, yield,yctx);
+                recursive_cover((struct rect){l,y, x,b}, edge,ectx, yield,yctx);
+                recursive_cover((struct rect){x,t, r,y}, edge,ectx, yield,yctx);
+                recursive_cover((struct rect){x,y, r,b}, edge,ectx, yield,yctx);
             }
         }
     }
 }
-
 
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
@@ -145,7 +159,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
-    struct circle const c = { cx,cy, 0.5f*fminf(cx,cy) };
+    struct circle c = { cx,cy, 0.5f*fminf(cx,cy) };
 
     SDL_SetRenderDrawColor(app->renderer, 255,255,255,255);
     SDL_RenderClear       (app->renderer                 );
@@ -158,14 +172,14 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
               r = (int)(c.x + c.r) + 1,
               b = (int)(c.y + c.r) + 1;
 
-    struct coverage *cov = &app->cov;
+    struct coverage_for_SDL *cov = &app->cov;
     cov->fulls = cov->parts = 0;
 
     struct { uint8_t r,g,b; } full, part;
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        cover_circle(cov, c, l,t,r,b);
+        recursive_cover((struct rect){l,t,r,b}, circle,&c, yield_coverage_for_SDL,cov);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
@@ -173,13 +187,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         for (int x = l; x < r; x++) {
             float const fx = (float)x,
                         fy = (float)y;
-            iv const edge = circle_edge(c, (iv){fx,fx+1}
-                                         , (iv){fy,fy+1});
-            if (edge.lo < 0 && edge.hi < 0) {
-                push_coverage(cov, x,y,x+1,y+1, 1.0f);
+            iv const e = circle((iv){fx,fx+1}, (iv){fy,fy+1}, &c);
+            if (e.lo < 0 && e.hi < 0) {
+                yield_coverage_for_SDL((struct rect){x,y,x+1,y+1}, 1.0f, cov);
             }
-            if (edge.lo < 0 && edge.hi >= 0) {
-                push_coverage(cov, x,y,x+1,y+1, 0.5f/*TODO*/);
+            if (e.lo < 0 && e.hi >= 0) {
+                yield_coverage_for_SDL((struct rect){x,y,x+1,y+1}, 0.5f/*TODO*/, cov);
             }
         }
     }
