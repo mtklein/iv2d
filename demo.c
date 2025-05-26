@@ -138,7 +138,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     double const elapsed = now_us() - start;
 
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
-    SDL_RenderDebugTextFormat  (app->renderer, 0,4
+    SDL_RenderDebugTextFormat  (app->renderer, 4,4
                                              , "quality %d, %d full + %d partial, %.0fµs"
                                              , app->quality, app->full, app->partial, elapsed);
 
