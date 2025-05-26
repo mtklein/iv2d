@@ -1,5 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "iv.h"
+#include "iv2d.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
@@ -11,10 +12,6 @@
 //   - how to best use vectorization?
 //   - cover with triangles, quads?
 
-struct rect {
-    int l,t,r,b;
-};
-
 struct coverage_for_SDL {
     SDL_FRect *part,*full;
     float     *part_cov;
@@ -22,7 +19,7 @@ struct coverage_for_SDL {
     int        fulls, full_cap;
 };
 
-static void yield_coverage_for_SDL(struct rect bounds, float c, void *ctx) {
+static void yield_coverage_for_SDL(struct iv2d_rect bounds, float c, void *ctx) {
     struct coverage_for_SDL *cov = ctx;
 
     SDL_FRect const rect = {
@@ -108,49 +105,6 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
-static inline iv iv_(float x) {
-    return (iv){x,x};
-}
-
-struct circle {
-    float x,y,r;
-};
-static iv circle(iv x, iv y, void *ctx) {
-    struct circle const *c = ctx;
-    return iv_sub(iv_add(iv_square(iv_sub(x, iv_(c->x))),
-                         iv_square(iv_sub(y, iv_(c->y)))),
-                  iv_(c->r*c->r));
-}
-
-static void recursive_cover(struct rect bounds,
-                            iv (*edge)(iv x, iv y, void *ectx), void *ectx,
-                            void (*yield)(struct rect bounds, float c, void *yctx), void *yctx) {
-    int const l = bounds.l,
-              t = bounds.t,
-              r = bounds.r,
-              b = bounds.b;
-    if (l < r && t < b) {
-        iv const e = edge((iv){(float)l, (float)r}, (iv){(float)t, (float)b}, ectx);
-
-        if (e.lo < 0 && e.hi < 0) {
-            yield(bounds, 1.0f, yctx);
-        }
-        if (e.lo < 0 && e.hi >= 0) {
-            int const x = (l+r)/2,
-                      y = (t+b)/2;
-            if (l == x && t == y) {
-                yield(bounds, 0.5f/*TODO*/, yctx);
-            } else {
-                // This rect has partial coverage, split and recurse.
-                recursive_cover((struct rect){l,t, x,y}, edge,ectx, yield,yctx);
-                recursive_cover((struct rect){l,y, x,b}, edge,ectx, yield,yctx);
-                recursive_cover((struct rect){x,t, r,y}, edge,ectx, yield,yctx);
-                recursive_cover((struct rect){x,y, r,b}, edge,ectx, yield,yctx);
-            }
-        }
-    }
-}
-
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
 
@@ -159,7 +113,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
-    struct circle c = { cx,cy, 0.5f*fminf(cx,cy) };
+    struct iv2d_circle const c = { cx,cy, 0.5f*fminf(cx,cy) };
 
     SDL_SetRenderDrawColor(app->renderer, 255,255,255,255);
     SDL_RenderClear       (app->renderer                 );
@@ -179,7 +133,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (app->mode) {
         full.r = 138; full.g = 145; full.b = 247;
         part.r =  97; part.g = 175; part.b =  75;
-        recursive_cover((struct rect){l,t,r,b}, circle,&c, yield_coverage_for_SDL,cov);
+        iv2d_cover((struct iv2d_rect){l,t,r,b}, iv2d_circle,&c, yield_coverage_for_SDL,cov);
     } else {
         full.r = 155; full.g = 155; full.b = 155;
         part.r = 203; part.g = 137; part.b = 135;
@@ -187,12 +141,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         for (int x = l; x < r; x++) {
             float const fx = (float)x,
                         fy = (float)y;
-            iv const e = circle((iv){fx,fx+1}, (iv){fy,fy+1}, &c);
+            iv const e = iv2d_circle((iv){fx,fx+1}, (iv){fy,fy+1}, &c);
             if (e.lo < 0 && e.hi < 0) {
-                yield_coverage_for_SDL((struct rect){x,y,x+1,y+1}, 1.0f, cov);
+                yield_coverage_for_SDL((struct iv2d_rect){x,y,x+1,y+1}, 1.0f, cov);
             }
             if (e.lo < 0 && e.hi >= 0) {
-                yield_coverage_for_SDL((struct rect){x,y,x+1,y+1}, 0.5f/*TODO*/, cov);
+                yield_coverage_for_SDL((struct iv2d_rect){x,y,x+1,y+1}, 0.5f/*TODO*/, cov);
             }
         }
     }
