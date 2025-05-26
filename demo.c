@@ -18,8 +18,9 @@ struct app {
     struct iv2d_coverage_cb cov_cb;
     SDL_Window             *window;
     SDL_Renderer           *renderer;
+    int                     quality,draw_bounds;
     int                     full,partial;
-    int                     quality,unused;
+    SDL_FRect               bounds;
 };
 
 static void render_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
@@ -31,6 +32,7 @@ static void render_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, floa
         .w = (float)(rect.r - rect.l),
         .h = (float)(rect.b - rect.t),
     };
+    SDL_GetRectUnionFloat(&frect, &app->bounds, &app->bounds);
 
     *(cov == 1.0f ? &app->full : &app->partial) += 1;
 
@@ -92,6 +94,10 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
                 case SDLK_EQUALS:
                     app->quality++;
                     break;
+
+                case SDLK_B:
+                    app->draw_bounds ^= 1;
+                    break;
             }
             break;
     }
@@ -111,6 +117,7 @@ static double now_us(void) {
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
     app->full = app->partial = 0;
+    app->bounds = (SDL_FRect){0,0,-1,-1};
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
@@ -129,6 +136,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     }
     double const elapsed = now_us() - start;
 
+    if (app->draw_bounds) {
+        SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,0.125);
+        SDL_RenderRect             (app->renderer, &app->bounds);
+    }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4
                                              , "quality %d, %d full + %d partial, %.0fµs"
