@@ -13,18 +13,40 @@
 //      - at larger scale?
 //   - cover with other shapes?  triangles, quads?
 
+struct quad {
+    struct { float x,y; SDL_FColor c; } vertex[6];
+};
 
 struct app {
     struct iv2d_coverage_cb cov_cb;
-    SDL_Window             *window;
-    SDL_Renderer           *renderer;
-    int                     quality,draw_bounds;
-    int                     full,partial;
-    SDL_FRect               bounds;
+
+    SDL_Window   *window;
+    SDL_Renderer *renderer;
+    struct quad  *quad;
+    int           quads, quad_cap;
+    int           full, partial;
+    SDL_FRect     bounds;
+    int           quality, draw_bounds;
 };
 
-static void render_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
+static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
     struct app *app = (struct app*)cb;
+    *(cov == 1.0f ? &app->full : &app->partial) += 1;
+
+    if (app->quad_cap == app->quads) {
+        app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
+        app->quad = realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
+    }
+
+    float const l = (float)rect.l,
+                t = (float)rect.t,
+                r = (float)rect.r,
+                b = (float)rect.b;
+    SDL_FColor const c = {0.5f, 0.5f, 0.5f, cov};
+    app->quad[app->quads++] = (struct quad) {{
+        {l,t,c}, {r,t,c}, {l,b,c},
+        {r,t,c}, {r,b,c}, {l,b,c},
+    }};
 
     SDL_FRect const frect = {
         .x = (float)(rect.l         ),
@@ -33,11 +55,6 @@ static void render_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, floa
         .h = (float)(rect.b - rect.t),
     };
     SDL_GetRectUnionFloat(&frect, &app->bounds, &app->bounds);
-
-    *(cov == 1.0f ? &app->full : &app->partial) += 1;
-
-    SDL_SetRenderDrawColorFloat(app->renderer, 0.5f, 0.5f, 0.5f, cov);
-    SDL_RenderFillRect(app->renderer, &frect);
 }
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
@@ -46,7 +63,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     }
 
     struct app *app = *ctx = calloc(1, sizeof *app);
-    app->cov_cb.fn = render_rect;
+    app->cov_cb.fn = queue_rect;
     app->quality = argc > 1 ? atoi(argv[1]) : 1;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
@@ -116,7 +133,7 @@ static double now_us(void) {
 
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
-    app->full = app->partial = 0;
+    app->full = app->partial = app->quads = 0;
     app->bounds = (SDL_FRect){0,0,-1,-1};
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
@@ -136,6 +153,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     }
     double const elapsed = now_us() - start;
 
+    SDL_RenderGeometryRaw(app->renderer, NULL
+                                       , &app->quad->vertex->x, sizeof *app->quad->vertex
+                                       , &app->quad->vertex->c, sizeof *app->quad->vertex
+                                       , NULL, 0
+                                       , 6 * app->quads
+                                       , NULL, 0, 0);
     if (app->draw_bounds) {
         SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,0.125);
         SDL_RenderRect             (app->renderer, &app->bounds);
