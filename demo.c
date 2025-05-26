@@ -62,7 +62,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     }
 
     struct app *app = *ctx = calloc(1, sizeof *app);
-    app->quality = argc > 1 ? atoi(argv[1]) : 0;
+    app->quality = argc > 1 ? atoi(argv[1]) : 1;
     app->cov.cb.fn = coverage_for_SDL;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
@@ -152,7 +152,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     double const start_us = now_us();
 
-    iv2d_cover(bounds, app->quality, &c.edge, &cov->cb);
+    iv2d_cover(bounds, app->quality, &c.region, &cov->cb);
     double const cover_us = now_us() - start_us;
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
