@@ -47,13 +47,15 @@ static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float
         {r,t,c}, {r,b,c}, {l,b,c},
     }};
 
-    SDL_FRect const frect = {
-        .x = (float)(rect.l         ),
-        .y = (float)(rect.t         ),
-        .w = (float)(rect.r - rect.l),
-        .h = (float)(rect.b - rect.t),
-    };
-    SDL_GetRectUnionFloat(&frect, &app->bounds, &app->bounds);
+    if (app->draw_bounds) {
+        SDL_FRect const frect = {
+            .x = (float)(rect.l         ),
+            .y = (float)(rect.t         ),
+            .w = (float)(rect.r - rect.l),
+            .h = (float)(rect.b - rect.t),
+        };
+        SDL_GetRectUnionFloat(&frect, &app->bounds, &app->bounds);
+    }
 }
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
