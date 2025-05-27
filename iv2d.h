@@ -2,23 +2,23 @@
 
 #include "iv.h"
 
-// A 2D region represented as an expression of x and y.
-// The boundary of the region is fn(x,y)==0,
-// with fn(x,y)<0 for area within the region.
+// A 2D region represented as an expression of X and Y.
+// The boundary of the region is fn(X,Y)==0,
+// with fn(X,Y)<0 for area within the region.
 struct iv2d_region {
-    iv (*fn)(struct iv2d_region const*, iv x, iv y);
+    iv (*fn)(struct iv2d_region const*, iv X, iv Y);
 };
 
 // iv2d_circle is a sample region, a circle centered at x,y with radius r.
 //
 // The typical equation for the boundary of a circle looks like
-//         (x - c.x)^2 + (y - c.y)^2 == c.r^2
+//         (X - c.x)^2 + (Y - c.y)^2 == c.r^2
 //
 // so the area inside that circle is described by the inequality
-//         (x - c.x)^2 + (y - c.y)^2 <  c.r^2
+//         (X - c.x)^2 + (Y - c.y)^2 <  c.r^2
 //
 // which all means this region will return the value
-//         (x - c.x)^2 + (y - c.y)^2 -  c.r^2
+//         (X - c.x)^2 + (Y - c.y)^2 -  c.r^2
 struct iv2d_circle {
     struct iv2d_region region;
 
@@ -38,11 +38,12 @@ struct iv2d_rect {
 // pixels all the way up to the entire bounds.
 //
 // The quality parameter controls how much attention iv2d_cover pays to
-// rectangles overlapping the region's edge.  If quality <= 0, it ignores them,
-// and so never yields rectangles with anything less than full 1.0f coverage.
-// At quality 1, it spends minimal effort to approximate those partial
-// coverages, and higher levels of quality increase the effort.  While quality
-// is subjective, I'd describe 0 as ugly, 1 as good, and 2 as great.
+// rectangles overlapping the region's boundary.  If quality <= 0, it ignores
+// them, and so never yields rectangles with anything less than full 1.0f
+// coverage; results will be pixelated.  At quality 1, it spends minimal effort
+// estimating those partial coverages, and higher levels of quality increase
+// that effort.  While antialiasing is a matter of taste, I'd describe
+// quality=1 as good, quality=2 as great, and anything higher as overkill.
 struct iv2d_coverage_cb {
     void (*fn)(struct iv2d_coverage_cb*, struct iv2d_rect bounds, float coverage);
 };
