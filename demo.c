@@ -83,6 +83,7 @@ void SDL_AppQuit(void *ctx, SDL_AppResult res) {
 
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow  (app->window);
+    free(app->quad);
     free(app);
     SDL_Quit();
 }
