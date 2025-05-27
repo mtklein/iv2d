@@ -1,10 +1,15 @@
 #include "iv2d.h"
 #include <assert.h>
 
+// Transform the result of evaluating an iv2d_region into an inside/outside coverage decision.
+// Remember, the general idea is that the expression is negative inside the region.
+// I'm not exactly sure how I want to treat exact 0, or even perhaps if ±0 should be treated
+// differently, but for now I try to consistently treat 0 as non-negative.
 static enum {NONE,FULL,MAYBE} coverage(iv edge) {
     assert(edge.lo <= edge.hi);
-    if (edge.lo > 0) { return NONE; }
-    if (edge.hi < 0) { return FULL; }
+    if (edge.hi <  0) { return FULL; }    // [-a, -b]                think, "all negative"
+    if (edge.lo >= 0) { return NONE; }    // [+a, +b] or [ 0, +b] or [0,0]  "non-negative"
+    assert(edge.lo < 0 && 0 <= edge.hi);  // [-a, +b] or [-a,  0]           "some negative"
     return MAYBE;
 }
 
@@ -27,6 +32,12 @@ static float cover_subpixel(float l, float t, float r, float b,
         // eye almost perfect, where using 0.5 needs quality=3 or quality=4 to look good, and
         // something like quality=7 to look almost perfect.  This is _huge_.
         #else
+            // coverage(edge) == MAYBE implies edge.lo < 0 <= edge.hi, so
+            //   1) edge.lo           is non-zero
+            //   2) edge.hi - edge.lo is non-zero
+            // which together mean the divide is safe and produces a non-zero coverage estimate.
+            assert(edge.lo           < 0);
+            assert(edge.hi - edge.lo > 0);
             return -edge.lo / (edge.hi - edge.lo);
         #endif
     }
@@ -55,6 +66,8 @@ static float cover_subpixel(float l, float t, float r, float b,
         if (coverage(rb) == FULL ) { cov += 1; }
         if (coverage(rb) == MAYBE) { cov += cover_subpixel(x,y,r,b, rb,limit-1,region); }
     }
+    // If the whole box has MAYBE coverage, at least one of its corners will give us _something_.
+    assert(cov > 0);
     return cov * 0.25f;
 }
 
@@ -81,9 +94,8 @@ void iv2d_cover(struct iv2d_rect   const  bounds,
                     float const cov = cover_subpixel((float)l, (float)t,
                                                      (float)r, (float)b,
                                                      edge, quality-1, region);
-                    if (cov > 0) {
-                        yield->fn(yield, bounds, cov);
-                    }
+                    assert(cov > 0);
+                    yield->fn(yield, bounds, cov);
                 }
             } else {
                 iv2d_cover((struct iv2d_rect){l,t, x,y}, quality, region, yield);
