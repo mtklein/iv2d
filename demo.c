@@ -28,6 +28,25 @@ struct app {
     int           quality, draw_bounds;
 };
 
+static _Bool handle_keys(struct app *app, char const *key) {
+    while (*key) {
+        switch (*key++) {
+            default: break;
+
+            case 'q':
+            case SDLK_RETURN:
+            case SDLK_ESCAPE: return true;
+
+            case '=':
+            case '+': app->quality++; break;
+            case '-': app->quality--; break;
+
+            case 'b': app->draw_bounds ^= 1; break;
+        }
+    }
+    return false;
+}
+
 static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
     struct app *app = (struct app*)cb;
     *(cov == 1.0f ? &app->full : &app->partial) += 1;
@@ -65,7 +84,6 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 
     struct app *app = *ctx = calloc(1, sizeof *app);
     app->cov_cb.fn = queue_rect;
-    app->quality = argc > 1 ? atoi(argv[1]) : 1;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
@@ -74,7 +92,8 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         return SDL_APP_FAILURE;
     }
     SDL_SetWindowPosition(app->window, 0,0);
-    return SDL_APP_CONTINUE;
+
+    return (argc > 1 && handle_keys(app, argv[1])) ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *ctx, SDL_AppResult res) {
@@ -97,26 +116,8 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
             return SDL_APP_SUCCESS;
 
         case SDL_EVENT_KEY_DOWN:
-            switch (event->key.key) {
-                default: break;
-
-                case SDLK_Q:
-                case SDLK_ESCAPE:
-                case SDLK_RETURN:
-                    return SDL_APP_SUCCESS;
-
-                case SDLK_MINUS:
-                    app->quality--;
-                    break;
-
-                case SDLK_PLUS:
-                case SDLK_EQUALS:
-                    app->quality++;
-                    break;
-
-                case SDLK_B:
-                    app->draw_bounds ^= 1;
-                    break;
+            if (handle_keys(app, (char const[]){(char)event->key.key,0})) {
+                return SDL_APP_SUCCESS;
             }
             break;
     }
