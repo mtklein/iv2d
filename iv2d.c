@@ -91,8 +91,7 @@ void iv2d_cover(struct iv2d_rect   const  bounds,
                       y = (t+b)/2;
             if (l == x && t == y) {
                 if (quality > 0) {
-                    float const cov = cover_subpixel((float)l, (float)t,
-                                                     (float)r, (float)b,
+                    float const cov = cover_subpixel((float)l, (float)t, (float)r, (float)b,
                                                      edge, quality-1, region);
                     assert(cov > 0);
                     yield->fn(yield, bounds, cov);
