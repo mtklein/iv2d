@@ -40,6 +40,10 @@ iv iv_max(iv X, iv Y) {
     };
 }
 
+iv iv_neg(iv X) {
+    return iv_sub((iv){0,0}, X);
+}
+
 iv iv_sqrt(iv X) {
     return (iv){
         sqrtf(X.lo),

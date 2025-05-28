@@ -153,30 +153,31 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
-    struct iv2d_circle const centered = iv2d_circle(cx,cy, 0.5f*(cx < cy ? cx : cy)),
-                                fixed = iv2d_circle(300,200,100);
 
-    struct iv2d_union        const u = iv2d_union       (&centered.region, &fixed.region);
-    struct iv2d_intersection const i = iv2d_intersection(&centered.region, &fixed.region);
-    struct iv2d_difference   const d = iv2d_difference  (&centered.region, &fixed.region);
+    struct iv2d_circle const centered = {cx,cy, 0.5f*(cx < cy ? cx : cy)},
+                                fixed = {300,200,100};
 
-    struct {
-        struct iv2d_region const *region;
-        char               const *name;
-    } slides[] = {
-        {&u.region, "union"},
-        {&i.region, "intersection"},
-        {&d.region, "difference"},
+    struct iv2d_binop const scene = {
+        iv2d_circle, &centered,
+        iv2d_circle, &fixed,
     };
 
+    struct {
+        iv2d_region *region;
+        char const  *name;
+    } slides[] = {
+        {iv2d_union       , "union"       },
+        {iv2d_intersection, "intersection"},
+        {iv2d_difference  , "difference"  },
+    };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
     if (slide > len(slides)-1) { slide = len(slides)-1; }
 
-
     double const start = now_us();
     {
-        iv2d_cover((struct iv2d_rect){0,0,w,h}, app->quality, slides[slide].region, &app->cov_cb);
+        iv2d_cover(slides[slide].region, &scene,
+                   (struct iv2d_rect){0,0,w,h}, app->quality, &app->cov_cb);
     }
     double const elapsed = now_us() - start;
 
@@ -191,9 +192,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         SDL_RenderRect             (app->renderer, &app->bounds);
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
-    SDL_RenderDebugTextFormat  (app->renderer,
-            4,4, "%s (%d), quality %d, %d full + %d partial, %.0fµs"
-               , slides[slide].name, slide, app->quality, app->full, app->partial, elapsed);
+    SDL_RenderDebugTextFormat  (app->renderer, 4,4,
+            "%s (%d), quality %d, %d full + %d partial, %.0fµs",
+            slides[slide].name, slide, app->quality, app->full, app->partial, elapsed);
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
