@@ -5,7 +5,7 @@
 // A 2D region represented as an expression of X and Y.
 // The boundary of the region is f(X,Y)==0,
 // with f(X,Y)<0 for area within the region.
-typedef iv iv2d_region(iv X, iv Y, void const *ctx);
+typedef iv4 iv2d_region(iv4 X, iv4 Y, void const *ctx);
 
 // iv2d_circle is a sample region, a circle centered at x,y with radius r.
 //
