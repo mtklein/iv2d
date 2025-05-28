@@ -113,16 +113,6 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
-static double now_us(void) {
-    static double scale = -1;
-    if (scale < 0) {
-        uint64_t freq = SDL_GetPerformanceFrequency();
-        scale = 1e6 / (double)freq;
-    }
-    uint64_t now = SDL_GetPerformanceCounter();
-    return (double)now * scale;
-}
-
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
     app->quads = app->full = 0;
@@ -157,12 +147,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (slide <             0) { slide =             0; }
     if (slide > len(slides)-1) { slide = len(slides)-1; }
 
-    double const start = now_us();
+    uint64_t const start = SDL_GetPerformanceCounter();
     {
         iv2d_cover(slides[slide].region, &scene,
                    (struct iv2d_rect){0,0,w,h}, app->quality, queue_rect,app);
     }
-    double const elapsed = now_us() - start;
+    uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
 
     SDL_RenderGeometryRaw(app->renderer, NULL
                                        , &app->quad->vertex->x, sizeof *app->quad->vertex
@@ -188,8 +178,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
-            "%s (%d), quality %d, %d full + %d partial, %.0fµs",
-            slides[slide].name, slide, app->quality, app->full, app->quads - app->full, elapsed);
+            "%s (%d), quality %d, %d full + %d partial, %lluµs",
+            slides[slide].name, slide, app->quality, app->full, app->quads - app->full,
+            1000000 * elapsed / SDL_GetPerformanceFrequency());
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
