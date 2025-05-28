@@ -3,7 +3,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
-#include <stdlib.h>
 
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
 
@@ -55,7 +54,7 @@ static void queue_rect(struct iv2d_rect rect, float cov, void *ctx) {
 
     if (app->quad_cap == app->quads) {
         app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
-        app->quad = realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
+        app->quad = SDL_realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
     }
     float const l = (float)rect.l,
                 t = (float)rect.t,
@@ -73,11 +72,11 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    struct app *app = *ctx = calloc(1, sizeof *app);
+    struct app *app = *ctx = SDL_calloc(1, sizeof *app);
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
-        free(app);
+        SDL_free(app);
         SDL_Quit();
         return SDL_APP_FAILURE;
     }
@@ -92,8 +91,8 @@ void SDL_AppQuit(void *ctx, SDL_AppResult res) {
 
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow  (app->window);
-    free(app->quad);
-    free(app);
+    SDL_free(app->quad);
+    SDL_free(app);
     SDL_Quit();
 }
 
