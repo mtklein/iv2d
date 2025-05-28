@@ -9,9 +9,7 @@
 // TODO
 //   - add a recurse-into-9-sub-parts coverage strategy
 //   - add a scanlines coverage strategy
-//   - how to best use vectorization?
-//      - in subpixels, kind of obvious
-//      - at larger scale?
+//   - how to best use vectorization in iv2d_cover()?
 //   - cover with other shapes?  triangles, quads?
 
 struct quad {

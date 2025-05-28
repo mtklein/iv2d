@@ -53,8 +53,8 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
               r = bounds.r,
               b = bounds.b;
     if (l < r && t < b) {
-        iv4 const X = (iv4){{(float)l}, {(float)r}},
-                  Y = (iv4){{(float)t}, {(float)b}};
+        iv4 const X = { {(float)l}, {(float)r} },
+                  Y = { {(float)t}, {(float)b} };
         iv  const R = lane(0, region(X,Y, ctx));
 
         if (classify(R) == INSIDE) {
@@ -82,16 +82,16 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
     }
 }
 
-static iv4 iv4_(float x) {
+static iv4 splat(float x) {
     return (iv4){{x,x,x,x}, {x,x,x,x}};
 }
 
 iv4 iv2d_circle(iv4 X, iv4 Y, void const *ctx) {
     struct iv2d_circle const *c = ctx;
 
-    return iv4_sub(iv4_add(iv4_square(iv4_sub(X, iv4_(c->x))),
-                           iv4_square(iv4_sub(Y, iv4_(c->y)))),
-                   iv4_(c->r * c->r));
+    return iv4_sub(iv4_add(iv4_square(iv4_sub(X, splat(c->x))),
+                           iv4_square(iv4_sub(Y, splat(c->y)))),
+                   splat(c->r * c->r));
 }
 
 iv4 iv2d_union(iv4 X, iv4 Y, void const *ctx) {
