@@ -1,6 +1,8 @@
 #include "iv2d.h"
 #include <assert.h>
 
+typedef int __attribute__((vector_size(16))) int4;
+
 static iv lane(int i, iv4 X) {
     return (iv){X.lo[i], X.hi[i]};
 }
@@ -8,10 +10,10 @@ static iv lane(int i, iv4 X) {
 // Our core idea is that a region function R=region(X,Y) is negative inside the region
 // or positive outside it.  By convention we treat an exact 0 (on the edge) as outside.
 // So all-negative means inside, all-non-negative outside, and a mix is uncertain.
-static enum {OUTSIDE,INSIDE,UNCERTAIN} classify(iv R) {
-    if (R.hi <  0) { return  INSIDE; }   // [-,-]
-    if (R.lo >= 0) { return OUTSIDE; }   // [+,+] or [0,+] or [0,0]
-    return UNCERTAIN;  // R.lo < 0 ≤ R.hi,  [-,+] or [-,0]
+static enum {INSIDE=-1,UNCERTAIN=0,OUTSIDE=+1} classify(iv R) {
+    if (R.hi < 0) { return    INSIDE; }   // [-,-]
+    if (R.lo < 0) { return UNCERTAIN; }   // [-,+] or [-,0]
+    return OUTSIDE;                       // [+,+] or [0,+] or [0,0]
 }
 
 // Estimate coverage of a region bounded by {l,t,r,b} that's already evaluated to R,
@@ -30,29 +32,16 @@ static float estimate_coverage(iv2d_region *region, void const *ctx, iv const R,
                 y = (t+b)/2;
     iv4 const X = {{l,l,x,x}, {x,x,r,r}},
               Y = {{t,y,t,y}, {y,b,y,b}};
-
     iv4 const LT_LB_RT_RB = region(X,Y, ctx);
-    float cov = 0.0f;
-    {
-        iv const LT = lane(0, LT_LB_RT_RB);
-        if (classify(LT) == INSIDE   ) { cov += 1; }
-        if (classify(LT) == UNCERTAIN) { cov += estimate_coverage(region,ctx,LT, l,t,x,y,limit); }
-    }
-    {
-        iv const LB = lane(1, LT_LB_RT_RB);
-        if (classify(LB) == INSIDE   ) { cov += 1; }
-        if (classify(LB) == UNCERTAIN) { cov += estimate_coverage(region,ctx,LB, l,y,x,b,limit); }
-    }
-    {
-        iv const RT = lane(2, LT_LB_RT_RB);
-        if (classify(RT) == INSIDE   ) { cov += 1; }
-        if (classify(RT) == UNCERTAIN) { cov += estimate_coverage(region,ctx,RT, x,t,r,y,limit); }
-    }
-    {
-        iv const RB = lane(3, LT_LB_RT_RB);
-        if (classify(RB) == INSIDE   ) { cov += 1; }
-        if (classify(RB) == UNCERTAIN) { cov += estimate_coverage(region,ctx,RB, x,y,r,b,limit); }
-    }
+
+    int4 const inside = (LT_LB_RT_RB.hi < 0)          ,
+            uncertain = (LT_LB_RT_RB.lo < 0) & ~inside;
+
+    float cov = (float)(int)__builtin_reduce_add(inside & 1);
+    if (uncertain[0]) { cov += estimate_coverage(region,ctx, lane(0,LT_LB_RT_RB), l,t,x,y, limit); }
+    if (uncertain[1]) { cov += estimate_coverage(region,ctx, lane(1,LT_LB_RT_RB), l,y,x,b, limit); }
+    if (uncertain[2]) { cov += estimate_coverage(region,ctx, lane(2,LT_LB_RT_RB), x,t,r,y, limit); }
+    if (uncertain[3]) { cov += estimate_coverage(region,ctx, lane(3,LT_LB_RT_RB), x,y,r,b, limit); }
     return cov * 0.25f;
 }
 
