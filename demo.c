@@ -158,15 +158,15 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                                        , &app->quad->vertex->x, sizeof *app->quad->vertex
                                        , &app->quad->vertex->c, sizeof *app->quad->vertex
                                        , NULL, 0
-                                       , 6 * app->quads
+                                       , len(app->quad->vertex) * app->quads
                                        , NULL, 0, 0);
     if (app->draw_bounds) {
         float l = +1.0f/0.0f,
               t = +1.0f/0.0f,
               r = -1.0f/0.0f,
               b = -1.0f/0.0f;
-        for (int i = 0; i < app->quads; i++)
-        for (int j = 0; j <          6; j++) {
+        for (int i = 0; i <     app->quads        ; i++)
+        for (int j = 0; j < len(app->quad->vertex); j++) {
             l = fminf(l, app->quad[i].vertex[j].x);
             t = fminf(t, app->quad[i].vertex[j].y);
             r = fmaxf(r, app->quad[i].vertex[j].x);
