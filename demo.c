@@ -2,7 +2,7 @@
 #include "iv2d.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
@@ -22,13 +22,11 @@ struct quad {
 struct app {
     struct iv2d_coverage_cb cov_cb;
 
-    SDL_Window      *window;
-    SDL_Renderer    *renderer;
-    struct quad     *quad;
-    int              quads, quad_cap;
-    int              full, partial;
-    struct iv2d_rect bounds;
-    int              quality, draw_bounds, slide, padding;
+    SDL_Window   *window;
+    SDL_Renderer *renderer;
+    struct quad  *quad;
+    int           quads, quad_cap;
+    int           full, quality, draw_bounds, slide;
 };
 
 static _Bool handle_keys(struct app *app, char const *key) {
@@ -55,12 +53,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
 
 static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
     struct app *app = (struct app*)cb;
-
-    *(cov == 1.0f ? &app->full : &app->partial) += 1;
-    if (app->bounds.l > rect.l) { app->bounds.l = rect.l; }
-    if (app->bounds.t > rect.t) { app->bounds.t = rect.t; }
-    if (app->bounds.r < rect.r) { app->bounds.r = rect.r; }
-    if (app->bounds.b < rect.b) { app->bounds.b = rect.b; }
+    app->full += cov == 1.0f;
 
     if (app->quad_cap == app->quads) {
         app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
@@ -136,8 +129,7 @@ static double now_us(void) {
 
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
-    app->full = app->partial = app->quads = 0;
-    app->bounds = (struct iv2d_rect){INT_MAX,INT_MAX,INT_MIN,INT_MIN};
+    app->quads = app->full = 0;
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
@@ -149,7 +141,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
 
-    struct iv2d_circle const centered = {cx,cy, 0.5f*(cx < cy ? cx : cy)},
+    struct iv2d_circle const centered = {cx,cy, 0.5f*fminf(cx,cy)},
                                 fixed = {300,200,100};
 
     struct iv2d_binop const scene = {
@@ -183,19 +175,25 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                                        , 6 * app->quads
                                        , NULL, 0, 0);
     if (app->draw_bounds) {
-        SDL_FRect const bounds = {
-            .x = (float)(app->bounds.l                ),
-            .y = (float)(app->bounds.t                ),
-            .w = (float)(app->bounds.r - app->bounds.l),
-            .h = (float)(app->bounds.b - app->bounds.t),
-        };
+        float l = +1.0f/0.0f,
+              t = +1.0f/0.0f,
+              r = -1.0f/0.0f,
+              b = -1.0f/0.0f;
+        for (int i = 0; i < app->quads; i++)
+        for (int j = 0; j <          6; j++) {
+            l = fminf(l, app->quad[i].vertex[j].x);
+            t = fminf(t, app->quad[i].vertex[j].y);
+            r = fmaxf(r, app->quad[i].vertex[j].x);
+            b = fmaxf(b, app->quad[i].vertex[j].y);
+        }
+        SDL_FRect const bounds = {l,t,r-l,b-t};
         SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,0.125);
         SDL_RenderRect             (app->renderer, &bounds);
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
             "%s (%d), quality %d, %d full + %d partial, %.0fµs",
-            slides[slide].name, slide, app->quality, app->full, app->partial, elapsed);
+            slides[slide].name, slide, app->quality, app->full, app->quads - app->full, elapsed);
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
