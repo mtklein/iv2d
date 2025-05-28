@@ -45,6 +45,21 @@ static void test_mul(void) {
     }
 }
 
+static void test_mul4(void) {
+    {
+        iv4 Z = iv4_mul((iv4){{3,-3,-3,-3},{4,4,4, 4}},
+                        (iv4){{5, 5,-5,-5},{6,6,6,-1}});
+        expect(equiv(Z.lo[0],  15));
+        expect(equiv(Z.hi[0],  24));
+        expect(equiv(Z.lo[1], -18));
+        expect(equiv(Z.hi[1],  24));
+        expect(equiv(Z.lo[2], -20));
+        expect(equiv(Z.hi[2],  24));
+        expect(equiv(Z.lo[3], -20));
+        expect(equiv(Z.hi[3],  15));
+    }
+}
+
 static void test_min(void) {
     {
         iv Z = iv_min((iv){3,4}, (iv){5,6});
@@ -101,6 +116,7 @@ int main(void) {
     test_add();
     test_sub();
     test_mul();
+    test_mul4();
     test_min();
     test_max();
     test_sqrt();
