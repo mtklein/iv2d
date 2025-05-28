@@ -44,9 +44,7 @@ struct iv2d_rect {
 // iv2d_cover yields rectangles' coverages to your callback in an unspecified
 // order, subject to change.  The rectangles may be any size, from single
 // pixels all the way up to the entire bounds.
-struct iv2d_coverage_cb {
-    void (*fn)(struct iv2d_coverage_cb*, struct iv2d_rect bounds, float coverage);
-};
 void iv2d_cover(iv2d_region*, void const *ctx,
-                struct iv2d_rect bounds, int quality, struct iv2d_coverage_cb*);
+                struct iv2d_rect bounds, int quality,
+                void (*yield)(struct iv2d_rect, float, void *yield_ctx), void *yield_ctx);
 

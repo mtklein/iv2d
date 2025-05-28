@@ -20,8 +20,6 @@ struct quad {
 };
 
 struct app {
-    struct iv2d_coverage_cb cov_cb;
-
     SDL_Window   *window;
     SDL_Renderer *renderer;
     struct quad  *quad;
@@ -51,8 +49,8 @@ static _Bool handle_keys(struct app *app, char const *key) {
     return false;
 }
 
-static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
-    struct app *app = (struct app*)cb;
+static void queue_rect(struct iv2d_rect rect, float cov, void *ctx) {
+    struct app *app = (struct app*)ctx;
     app->full += cov == 1.0f;
 
     if (app->quad_cap == app->quads) {
@@ -76,7 +74,6 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     }
 
     struct app *app = *ctx = calloc(1, sizeof *app);
-    app->cov_cb.fn = queue_rect;
 
     if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
@@ -164,7 +161,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     double const start = now_us();
     {
         iv2d_cover(slides[slide].region, &scene,
-                   (struct iv2d_rect){0,0,w,h}, app->quality, &app->cov_cb);
+                   (struct iv2d_rect){0,0,w,h}, app->quality, queue_rect,app);
     }
     double const elapsed = now_us() - start;
 
