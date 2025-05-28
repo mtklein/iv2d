@@ -26,6 +26,14 @@ struct iv2d_circle {
 };
 struct iv2d_circle iv2d_circle(float x, float y, float r);
 
+struct iv2d_union        { struct iv2d_region const region,*a,*b; };
+struct iv2d_intersection { struct iv2d_region const region,*a,*b; };
+struct iv2d_difference   { struct iv2d_region const region,*a,*b; };
+
+struct iv2d_union        iv2d_union       (struct iv2d_region const*, struct iv2d_region const*);
+struct iv2d_intersection iv2d_intersection(struct iv2d_region const*, struct iv2d_region const*);
+struct iv2d_difference   iv2d_difference  (struct iv2d_region const*, struct iv2d_region const*);
+
 struct iv2d_rect {
     int l,t,r,b;
 };

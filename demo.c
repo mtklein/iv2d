@@ -4,6 +4,8 @@
 #include <SDL3/SDL_main.h>
 #include <stdlib.h>
 
+#define len(x) (int)( sizeof(x) / sizeof(x[0]) )
+
 // TODO
 //   - add a recurse-into-9-sub-parts coverage strategy
 //   - add a scanlines coverage strategy
@@ -25,7 +27,7 @@ struct app {
     int           quads, quad_cap;
     int           full, partial;
     SDL_FRect     bounds;
-    int           quality, draw_bounds;
+    int           quality, draw_bounds, slide, padding;
 };
 
 static _Bool handle_keys(struct app *app, char const *key) {
@@ -37,9 +39,12 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case SDLK_RETURN:
             case SDLK_ESCAPE: return true;
 
-            case '=':
-            case '+': app->quality++; break;
             case '-': app->quality--; break;
+            case '+':
+            case '=': app->quality++; break;
+
+            case '[': app->slide--; break;
+            case ']': app->slide++; break;
 
             case 'b': app->draw_bounds ^= 1; break;
         }
@@ -148,11 +153,30 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
-    struct iv2d_circle const c = iv2d_circle(cx,cy, 0.5f*(cx < cy ? cx : cy));
+    struct iv2d_circle const centered = iv2d_circle(cx,cy, 0.5f*(cx < cy ? cx : cy)),
+                                fixed = iv2d_circle(300,200,100);
+
+    struct iv2d_union        const u = iv2d_union       (&centered.region, &fixed.region);
+    struct iv2d_intersection const i = iv2d_intersection(&centered.region, &fixed.region);
+    struct iv2d_difference   const d = iv2d_difference  (&centered.region, &fixed.region);
+
+    struct {
+        struct iv2d_region const *region;
+        char               const *name;
+    } slides[] = {
+        {&u.region, "union"},
+        {&i.region, "intersection"},
+        {&d.region, "difference"},
+    };
+
+    int slide = app->slide;
+    if (slide <             0) { slide =             0; }
+    if (slide > len(slides)-1) { slide = len(slides)-1; }
+
 
     double const start = now_us();
     {
-        iv2d_cover((struct iv2d_rect){0,0,w,h}, app->quality, &c.region, &app->cov_cb);
+        iv2d_cover((struct iv2d_rect){0,0,w,h}, app->quality, slides[slide].region, &app->cov_cb);
     }
     double const elapsed = now_us() - start;
 
@@ -167,9 +191,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         SDL_RenderRect             (app->renderer, &app->bounds);
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
-    SDL_RenderDebugTextFormat  (app->renderer, 4,4
-                                             , "quality %d, %d full + %d partial, %.0fµs"
-                                             , app->quality, app->full, app->partial, elapsed);
+    SDL_RenderDebugTextFormat  (app->renderer,
+            4,4, "%s (%d), quality %d, %d full + %d partial, %.0fµs"
+               , slides[slide].name, slide, app->quality, app->full, app->partial, elapsed);
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;

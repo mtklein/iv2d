@@ -94,3 +94,29 @@ static iv circle(struct iv2d_region const *region, iv x, iv y) {
 struct iv2d_circle iv2d_circle(float x, float y, float r) {
     return (struct iv2d_circle){.region.fn=circle, .x=x, .y=y, .r=r};
 }
+
+static iv union_(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_union const op = *(struct iv2d_union const*)region;
+    return iv_min(op.a->fn(op.a, x,y),
+                  op.b->fn(op.b, x,y));
+}
+static iv intersection(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_intersection const op = *(struct iv2d_intersection const*)region;
+    return iv_max(op.a->fn(op.a, x,y),
+                  op.b->fn(op.b, x,y));
+}
+static iv difference(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_difference const op = *(struct iv2d_difference const*)region;
+    return iv_max(op.a->fn(op.a, x,y),
+                  iv_sub((iv){0,0}, op.b->fn(op.b, x,y)));
+}
+
+struct iv2d_union iv2d_union(struct iv2d_region const *a, struct iv2d_region const *b) {
+    return (struct iv2d_union){.region.fn=union_, .a=a, .b=b};
+}
+struct iv2d_intersection iv2d_intersection(struct iv2d_region const *a, struct iv2d_region const *b) {
+    return (struct iv2d_intersection){.region.fn=intersection, .a=a, .b=b};
+}
+struct iv2d_difference iv2d_difference(struct iv2d_region const *a, struct iv2d_region const *b) {
+    return (struct iv2d_difference){.region.fn=difference, .a=a, .b=b};
+}
