@@ -2,6 +2,7 @@
 #include "iv2d.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <limits.h>
 #include <stdlib.h>
 
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
@@ -21,13 +22,13 @@ struct quad {
 struct app {
     struct iv2d_coverage_cb cov_cb;
 
-    SDL_Window   *window;
-    SDL_Renderer *renderer;
-    struct quad  *quad;
-    int           quads, quad_cap;
-    int           full, partial;
-    SDL_FRect     bounds;
-    int           quality, draw_bounds, slide, padding;
+    SDL_Window      *window;
+    SDL_Renderer    *renderer;
+    struct quad     *quad;
+    int              quads, quad_cap;
+    int              full, partial;
+    struct iv2d_rect bounds;
+    int              quality, draw_bounds, slide, padding;
 };
 
 static _Bool handle_keys(struct app *app, char const *key) {
@@ -54,13 +55,17 @@ static _Bool handle_keys(struct app *app, char const *key) {
 
 static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float cov) {
     struct app *app = (struct app*)cb;
+
     *(cov == 1.0f ? &app->full : &app->partial) += 1;
+    if (app->bounds.l > rect.l) { app->bounds.l = rect.l; }
+    if (app->bounds.t > rect.t) { app->bounds.t = rect.t; }
+    if (app->bounds.r < rect.r) { app->bounds.r = rect.r; }
+    if (app->bounds.b < rect.b) { app->bounds.b = rect.b; }
 
     if (app->quad_cap == app->quads) {
         app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
         app->quad = realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
     }
-
     float const l = (float)rect.l,
                 t = (float)rect.t,
                 r = (float)rect.r,
@@ -70,16 +75,6 @@ static void queue_rect(struct iv2d_coverage_cb *cb, struct iv2d_rect rect, float
         {l,t,c}, {r,t,c}, {l,b,c},
         {r,t,c}, {r,b,c}, {l,b,c},
     }};
-
-    if (app->draw_bounds) {
-        SDL_FRect const frect = {
-            .x = (float)(rect.l         ),
-            .y = (float)(rect.t         ),
-            .w = (float)(rect.r - rect.l),
-            .h = (float)(rect.b - rect.t),
-        };
-        SDL_GetRectUnionFloat(&frect, &app->bounds, &app->bounds);
-    }
 }
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
@@ -142,7 +137,7 @@ static double now_us(void) {
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
     app->full = app->partial = app->quads = 0;
-    app->bounds = (SDL_FRect){0,0,-1,-1};
+    app->bounds = (struct iv2d_rect){INT_MAX,INT_MAX,INT_MIN,INT_MIN};
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
@@ -188,8 +183,14 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                                        , 6 * app->quads
                                        , NULL, 0, 0);
     if (app->draw_bounds) {
+        SDL_FRect const bounds = {
+            .x = (float)(app->bounds.l                ),
+            .y = (float)(app->bounds.t                ),
+            .w = (float)(app->bounds.r - app->bounds.l),
+            .h = (float)(app->bounds.b - app->bounds.t),
+        };
         SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,0.125);
-        SDL_RenderRect             (app->renderer, &app->bounds);
+        SDL_RenderRect             (app->renderer, &bounds);
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
