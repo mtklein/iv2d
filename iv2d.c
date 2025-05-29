@@ -2,40 +2,36 @@
 
 typedef int __attribute__((vector_size(16))) int4;
 
-static iv lane(int i, iv4 X) {
-    return (iv){X.lo[i], X.hi[i]};
+// Our core idea: a region function R=region(X,Y) is negative inside the region
+// or positive outside it.  By convention we treat an exact 0 (on the edge) as outside.
+// So all-negative means inside, all-non-negative outside, and a mix is uncertain.
+static enum {INSIDE,OUTSIDE,UNCERTAIN} iv_classify(iv R) {
+    if (R.hi < 0) { return    INSIDE; }   // [-,-]
+    if (R.lo < 0) { return UNCERTAIN; }   // [-,+] or [-,0]
+    return OUTSIDE;                       // [+,+] or [0,+] or [0,0]
+}
+static void iv4_classify(iv4 R, int4 *inside, int4 *uncertain) {
+    *inside    = (R.hi < 0);
+    *uncertain = (R.lo < 0) & ~*inside;
 }
 
 static float4 when(int4 mask, float4 v) {
     return (float4)( mask & (int4)v );
 }
 
-// Our core idea is that a region function R=region(X,Y) is negative inside the region
-// or positive outside it.  By convention we treat an exact 0 (on the edge) as outside.
-// So all-negative means inside, all-non-negative outside, and a mix is uncertain.
-static enum {INSIDE=-1,UNCERTAIN=0,OUTSIDE=+1} classify(iv R) {
-    if (R.hi < 0) { return    INSIDE; }   // [-,-]
-    if (R.lo < 0) { return UNCERTAIN; }   // [-,+] or [-,0]
-    return OUTSIDE;                       // [+,+] or [0,+] or [0,0]
-}
-
-
 // Estimate coverage of a region bounded by {l,t,r,b} using subdivision like iv2d_cover
 // but with a limit on recursion depth.
 static float4 estimate_coverage(iv2d_region *region, void const *ctx,
                                 float l, float t, float r, float b, int limit) {
+    // Evaluate LT, LB, RT, and RB corners of the region.
     float const x = (l+r)/2,
                 y = (t+b)/2;
+    iv4 const corners = region((iv4){{l,l,x,x}, {x,x,r,r}},
+                               (iv4){{t,y,t,y}, {y,b,y,b}}, ctx);
+    int4 inside, uncertain;
+    iv4_classify(corners, &inside, &uncertain);
 
-    // Evaluate LT, LB, RT, and RB corners of the region.
-    iv4 const X = {{l,l,x,x}, {x,x,r,r}},
-              Y = {{t,y,t,y}, {y,b,y,b}},
-        corners = region(X,Y, ctx);
-
-    int4 const inside = (corners.hi < 0),
-            uncertain = (corners.lo < 0) & ~inside;
-
-    // Coverage of inside corners is easy, 1.0f.
+    // Coverage of corners fully inside the region is easy, 1.0f.
     float4 cov = when(inside, (float4){1.0f,1.0f,1.0f,1.0f});
 
     if (--limit) {
@@ -45,10 +41,15 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
         if (uncertain[3]) { cov += estimate_coverage(region,ctx, x,y,r,b, limit); }
     } else {
         // We may recurse no further, so remembering "negative inside, positive outside",
-        // we estimate coverage for each uncertain corner as the proportion that is negative.
+        // we estimate coverage for each uncertain corner as the proportion of its
+        // region function interval that is negative.  (When uncertain, this divide is safe.)
         cov += when(uncertain, -corners.lo / (corners.hi - corners.lo));
     }
     return 0.25f * cov;
+}
+
+static iv lane(int i, iv4 X) {
+    return (iv){X.lo[i], X.hi[i]};
 }
 
 void iv2d_cover(iv2d_region *region, void const *ctx,
@@ -56,14 +57,15 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
                 int quality,
                 void (*yield)(int,int,int,int, float, void*), void *arg) {
     if (l < r && t < b) {
+        // TODO: how to vectorize iv2d_cover() better?  3/4 of this call to region() is wasted.
         iv4 const X = { {(float)l}, {(float)r} },
                   Y = { {(float)t}, {(float)b} };
         iv  const R = lane(0, region(X,Y, ctx));
 
-        if (classify(R) == INSIDE) {
+        if (iv_classify(R) == INSIDE) {
             yield(l,t,r,b, 1.0f, arg);
         }
-        if (classify(R) == UNCERTAIN) {
+        if (iv_classify(R) == UNCERTAIN) {
             int const x = (l+r)/2,
                       y = (t+b)/2;
             if (l == x && t == y) {
