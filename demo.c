@@ -46,18 +46,14 @@ static _Bool handle_keys(struct app *app, char const *key) {
     return false;
 }
 
-static void queue_rect(int il, int it, int ir, int ib, float cov, void *ctx) {
-    struct app *app = (struct app*)ctx;
+static void queue_rect(float l, float t, float r, float b, float cov, void *arg) {
+    struct app *app = (struct app*)arg;
     app->full += cov == 1.0f;
 
     if (app->quad_cap == app->quads) {
         app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
         app->quad = SDL_realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
     }
-    float const l = (float)il,
-                t = (float)it,
-                r = (float)ir,
-                b = (float)ib;
     SDL_FColor const c = {0.5f, 0.5f, 0.5f, cov};
     app->quad[app->quads++] = (struct quad) {{
         {l,t,c}, {r,t,c}, {l,b,c},

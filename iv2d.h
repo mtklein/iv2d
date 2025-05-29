@@ -37,5 +37,5 @@ iv2d_region iv2d_union, iv2d_intersection, iv2d_difference;
 // effort.
 void iv2d_cover(iv2d_region*, void const *ctx,
                 int l, int t, int r, int b, int quality,
-                void (*yield)(int l, int t, int r, int b, float cov, void *arg), void *arg);
+                void (*yield)(float l, float t, float r, float b, float cov, void *arg), void *arg);
 

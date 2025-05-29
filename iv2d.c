@@ -52,7 +52,7 @@ static iv lane(int i, iv4 X) {
 void iv2d_cover(iv2d_region *region, void const *ctx,
                 int l, int t, int r, int b,
                 int quality,
-                void (*yield)(int,int,int,int, float, void*), void *arg) {
+                void (*yield)(float,float,float,float, float, void*), void *arg) {
     if (l < r && t < b) {
         // TODO: how to vectorize iv2d_cover() better?  3/4 of this call to region() is wasted.
         iv4 const X = { {(float)l}, {(float)r} },
@@ -60,7 +60,7 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
         iv  const R = lane(0, region(X,Y, ctx));
 
         if (iv_classify(R) == INSIDE) {
-            yield(l,t,r,b, 1.0f, arg);
+            yield((float)l,(float)t,(float)r,(float)b, 1.0f, arg);
         }
         if (iv_classify(R) == UNCERTAIN) {
             int const x = (l+r)/2,
@@ -72,7 +72,7 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
                                                           quality);
                     float const cov = cov4[0] + cov4[1] + cov4[2] + cov4[3];
                     if (cov > 0) {
-                        yield(l,t,r,b, cov, arg);
+                        yield((float)l,(float)t,(float)r,(float)b, cov, arg);
                     }
                 }
             } else {
