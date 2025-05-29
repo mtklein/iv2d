@@ -25,8 +25,8 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
     // Evaluate LT, LB, RT, and RB corners of the region.
     float const x = (l+r)/2,
                 y = (t+b)/2;
-    iv4 const corners = region((iv4){{l,l,x,x}, {x,x,r,r}},
-                               (iv4){{t,y,t,y}, {y,b,y,b}}, ctx);
+    iv4 const corners = region(ctx, (iv4){{l,l,x,x}, {x,x,r,r}}
+                                  , (iv4){{t,y,t,y}, {y,b,y,b}});
     int4 inside, uncertain;
     iv4_classify(corners, &inside, &uncertain);
 
@@ -52,14 +52,14 @@ static iv lane(int i, iv4 X) {
 static void iv2d_cover_(iv2d_region *region, void const *ctx,
                         float l, float t, float r, float b,
                         int quality,
-                        void (*yield)(float,float,float,float, float, void*), void *arg) {
+                        void (*yield)(void*, float,float,float,float, float), void *arg) {
     if (l < r && t < b) {
         // TODO: how to vectorize better here?  3/4 of this call to region() is wasted.
-        iv  const R = lane(0, region((iv4){{l},{r}},
-                                     (iv4){{t},{b}}, ctx));
+        iv  const R = lane(0, region(ctx, (iv4){{l},{r}}
+                                        , (iv4){{t},{b}}));
 
         if (iv_classify(R) == INSIDE) {
-            yield(l,t,r,b, 1.0f, arg);
+            yield(arg, l,t,r,b, 1.0f);
         }
         if (iv_classify(R) == UNCERTAIN) {
             if (r-l <= 1 && b-t <= 1) {
@@ -67,7 +67,7 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
                     float4 const cov4 = estimate_coverage(region,ctx, l,t,r,b, quality);
                     float  const cov  = cov4[0] + cov4[1] + cov4[2] + cov4[3];
                     if (cov > 0) {
-                        yield(l,t,r,b, cov, arg);
+                        yield(arg, l,t,r,b, cov);
                     }
                 }
             } else {
@@ -84,7 +84,7 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
 void iv2d_cover(iv2d_region *region, void const *ctx,
                 int l, int t, int r, int b,
                 int quality,
-                void (*yield)(float,float,float,float, float, void*), void *arg) {
+                void (*yield)(void*, float,float,float,float, float), void *arg) {
     iv2d_cover_(region,ctx, (float)l, (float)t, (float)r, (float)b, quality, yield,arg);
 }
 
@@ -92,26 +92,25 @@ static iv4 splat(float x) {
     return (iv4){{x,x,x,x}, {x,x,x,x}};
 }
 
-iv4 iv2d_circle(iv4 X, iv4 Y, void const *ctx) {
+iv4 iv2d_circle(void const *ctx, iv4 X, iv4 Y) {
     struct iv2d_circle const *c = ctx;
-
     return iv4_sub(iv4_add(iv4_square(iv4_sub(X, splat(c->x))),
                            iv4_square(iv4_sub(Y, splat(c->y)))),
                    splat(c->r * c->r));
 }
 
-iv4 iv2d_union(iv4 X, iv4 Y, void const *ctx) {
+iv4 iv2d_union(void const *ctx, iv4 X, iv4 Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_min(op->a(X,Y, op->actx),
-                   op->b(X,Y, op->bctx));
+    return iv4_min(op->a(op->actx, X,Y),
+                   op->b(op->bctx, X,Y));
 }
-iv4 iv2d_intersection(iv4 X, iv4 Y, void const *ctx) {
+iv4 iv2d_intersection(void const *ctx, iv4 X, iv4 Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_max(op->a(X,Y, op->actx),
-                   op->b(X,Y, op->bctx));
+    return iv4_max(op->a(op->actx, X,Y),
+                   op->b(op->bctx, X,Y));
 }
-iv4 iv2d_difference(iv4 X, iv4 Y, void const *ctx) {
+iv4 iv2d_difference(void const *ctx, iv4 X, iv4 Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_max(        op->a(X,Y, op->actx)  ,
-                   iv4_neg(op->b(X,Y, op->bctx)) );
+    return iv4_max(        op->a(op->actx, X,Y)  ,
+                   iv4_neg(op->b(op->bctx, X,Y)) );
 }

@@ -46,7 +46,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
     return false;
 }
 
-static void queue_rect(float l, float t, float r, float b, float cov, void *arg) {
+static void queue_rect(void *arg, float l, float t, float r, float b, float cov) {
     struct app *app = (struct app*)arg;
     app->full += cov == 1.0f;
 
