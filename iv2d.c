@@ -49,40 +49,43 @@ static iv lane(int i, iv4 X) {
     return (iv){X.lo[i], X.hi[i]};
 }
 
+static void iv2d_cover_(iv2d_region *region, void const *ctx,
+                        float l, float t, float r, float b,
+                        int quality,
+                        void (*yield)(float,float,float,float, float, void*), void *arg) {
+    if (l < r && t < b) {
+        // TODO: how to vectorize better here?  3/4 of this call to region() is wasted.
+        iv  const R = lane(0, region((iv4){{l},{r}},
+                                     (iv4){{t},{b}}, ctx));
+
+        if (iv_classify(R) == INSIDE) {
+            yield(l,t,r,b, 1.0f, arg);
+        }
+        if (iv_classify(R) == UNCERTAIN) {
+            if (r-l <= 1 && b-t <= 1) {
+                if (quality > 0) {
+                    float4 const cov4 = estimate_coverage(region,ctx, l,t,r,b, quality);
+                    float  const cov  = cov4[0] + cov4[1] + cov4[2] + cov4[3];
+                    if (cov > 0) {
+                        yield(l,t,r,b, cov, arg);
+                    }
+                }
+            } else {
+                float const x = floorf( (l+r)/2 ),
+                            y = floorf( (t+b)/2 );
+                iv2d_cover_(region,ctx, l,t,x,y, quality, yield,arg);
+                iv2d_cover_(region,ctx, l,y,x,b, quality, yield,arg);
+                iv2d_cover_(region,ctx, x,t,r,y, quality, yield,arg);
+                iv2d_cover_(region,ctx, x,y,r,b, quality, yield,arg);
+            }
+        }
+    }
+}
 void iv2d_cover(iv2d_region *region, void const *ctx,
                 int l, int t, int r, int b,
                 int quality,
                 void (*yield)(float,float,float,float, float, void*), void *arg) {
-    if (l < r && t < b) {
-        // TODO: how to vectorize iv2d_cover() better?  3/4 of this call to region() is wasted.
-        iv4 const X = { {(float)l}, {(float)r} },
-                  Y = { {(float)t}, {(float)b} };
-        iv  const R = lane(0, region(X,Y, ctx));
-
-        if (iv_classify(R) == INSIDE) {
-            yield((float)l,(float)t,(float)r,(float)b, 1.0f, arg);
-        }
-        if (iv_classify(R) == UNCERTAIN) {
-            int const x = (l+r)/2,
-                      y = (t+b)/2;
-            if (l == x && t == y) {
-                if (quality > 0) {
-                    float4 const cov4 = estimate_coverage(region,ctx,
-                                                          (float)l, (float)t, (float)r, (float)b,
-                                                          quality);
-                    float const cov = cov4[0] + cov4[1] + cov4[2] + cov4[3];
-                    if (cov > 0) {
-                        yield((float)l,(float)t,(float)r,(float)b, cov, arg);
-                    }
-                }
-            } else {
-                iv2d_cover(region,ctx, l,t,x,y, quality, yield,arg);
-                iv2d_cover(region,ctx, l,y,x,b, quality, yield,arg);
-                iv2d_cover(region,ctx, x,t,r,y, quality, yield,arg);
-                iv2d_cover(region,ctx, x,y,r,b, quality, yield,arg);
-            }
-        }
-    }
+    iv2d_cover_(region,ctx, (float)l, (float)t, (float)r, (float)b, quality, yield,arg);
 }
 
 static iv4 splat(float x) {
