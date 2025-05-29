@@ -32,10 +32,9 @@ iv2d_region iv2d_union, iv2d_intersection, iv2d_difference;
 // The quality parameter controls how much attention iv2d_cover pays to pixels
 // overlapping the region's boundary.  If quality <= 0, it ignores them, and so
 // never yields rectangles with anything less than full 1.0f coverage; results
-// will be pixelated.  At quality 1, it spends minimal effort estimating those
+// will be pixelated.  At quality 1, it spends minor effort estimating those
 // partial coverages, and each higher level of quality roughly doubles that
-// effort.  I'd describe quality=1 as good, quality=2 as great, and quality=4
-// near perfect.
+// effort.
 void iv2d_cover(iv2d_region*, void const *ctx,
                 int l, int t, int r, int b, int quality,
                 void (*yield)(int l, int t, int r, int b, float cov, void *arg), void *arg);
