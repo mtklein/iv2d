@@ -43,7 +43,7 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
         // We may recurse no further, so remembering "negative inside, positive outside",
         // we estimate coverage for each uncertain corner as the proportion of its
         // region function interval that is negative.  (When uncertain, this divide is safe.)
-        cov += when(uncertain, -corners.lo / (corners.hi - corners.lo));
+        cov += when(uncertain, corners.lo / (corners.lo - corners.hi));
     }
     return 0.25f * cov;
 }
