@@ -26,10 +26,6 @@ struct iv2d_binop {
 };
 iv2d_region iv2d_union, iv2d_intersection, iv2d_difference;
 
-struct iv2d_rect {
-    int l,t,r,b;
-};
-
 // iv2d_cover rasterizes an iv2d_region onto a bounded integer grid, yielding
 // [0,1] coverage values for rectangles within bounds that overlap the region.
 //
@@ -41,6 +37,6 @@ struct iv2d_rect {
 // effort.  I'd describe quality=1 as good, quality=2 as great, and quality=4
 // near perfect.
 void iv2d_cover(iv2d_region*, void const *ctx,
-                struct iv2d_rect bounds, int quality,
-                void (*yield)(struct iv2d_rect, float cov, void *yield_ctx), void *yield_ctx);
+                int l, int t, int r, int b, int quality,
+                void (*yield)(int l, int t, int r, int b, float cov, void *arg), void *arg);
 

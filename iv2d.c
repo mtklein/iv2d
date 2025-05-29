@@ -46,19 +46,16 @@ static float estimate_coverage(iv2d_region *region, void const *ctx, iv const R,
 }
 
 void iv2d_cover(iv2d_region *region, void const *ctx,
-                struct iv2d_rect const bounds, int const quality,
-                void (*yield)(struct iv2d_rect, float, void*), void *yield_ctx) {
-    int const l = bounds.l,
-              t = bounds.t,
-              r = bounds.r,
-              b = bounds.b;
+                int l, int t, int r, int b,
+                int quality,
+                void (*yield)(int,int,int,int, float, void*), void *arg) {
     if (l < r && t < b) {
         iv4 const X = { {(float)l}, {(float)r} },
                   Y = { {(float)t}, {(float)b} };
         iv  const R = lane(0, region(X,Y, ctx));
 
         if (classify(R) == INSIDE) {
-            yield(bounds, 1.0f, yield_ctx);
+            yield(l,t,r,b, 1.0f, arg);
         }
         if (classify(R) == UNCERTAIN) {
             int const x = (l+r)/2,
@@ -69,14 +66,14 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
                                                         (float)l, (float)t, (float)r, (float)b,
                                                         quality);
                     if (cov > 0) {
-                        yield(bounds, cov, yield_ctx);
+                        yield(l,t,r,b, cov, arg);
                     }
                 }
             } else {
-                iv2d_cover(region,ctx, (struct iv2d_rect){l,t, x,y}, quality, yield,yield_ctx);
-                iv2d_cover(region,ctx, (struct iv2d_rect){l,y, x,b}, quality, yield,yield_ctx);
-                iv2d_cover(region,ctx, (struct iv2d_rect){x,t, r,y}, quality, yield,yield_ctx);
-                iv2d_cover(region,ctx, (struct iv2d_rect){x,y, r,b}, quality, yield,yield_ctx);
+                iv2d_cover(region,ctx, l,t,x,y, quality, yield,arg);
+                iv2d_cover(region,ctx, l,y,x,b, quality, yield,arg);
+                iv2d_cover(region,ctx, x,t,r,y, quality, yield,arg);
+                iv2d_cover(region,ctx, x,y,r,b, quality, yield,arg);
             }
         }
     }
