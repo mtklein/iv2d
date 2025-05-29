@@ -19,8 +19,7 @@ static float4 when(int4 mask, float4 v) {
     return (float4)( mask & (int4)v );
 }
 
-// Estimate coverage of a region bounded by {l,t,r,b} using subdivision like iv2d_cover
-// but with a limit on recursion depth.
+// Estimate coverage of a region bounded by {l,t,r,b} with a limit on recursion depth.
 static float4 estimate_coverage(iv2d_region *region, void const *ctx,
                                 float l, float t, float r, float b, int limit) {
     // Evaluate LT, LB, RT, and RB corners of the region.
@@ -31,9 +30,7 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
     int4 inside, uncertain;
     iv4_classify(corners, &inside, &uncertain);
 
-    // Coverage of corners fully inside the region is easy, 1.0f.
     float4 cov = when(inside, (float4){1.0f,1.0f,1.0f,1.0f});
-
     if (--limit) {
         if (uncertain[0]) { cov += estimate_coverage(region,ctx, l,t,x,y, limit); }
         if (uncertain[1]) { cov += estimate_coverage(region,ctx, l,y,x,b, limit); }
