@@ -72,7 +72,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 
     struct app *app = *ctx = SDL_calloc(1, sizeof *app);
 
-    if (!SDL_CreateWindowAndRenderer("iv2d demo", 800, 600, SDL_WINDOW_RESIZABLE,
+    if (!SDL_CreateWindowAndRenderer("iv2d demo", 600, 402, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
         SDL_free(app);
         SDL_Quit();
@@ -175,8 +175,8 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     }
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
-            "%s (%d), quality %d, %d full + %d partial, %lluµs",
-            slides[slide].name, slide, app->quality, app->full, app->quads - app->full,
+            "%s (%d), %dx%d, quality %d, %d full + %d partial, %lluµs",
+            slides[slide].name, slide, w,h, app->quality, app->full, app->quads - app->full,
             1000000 * elapsed / SDL_GetPerformanceFrequency());
 
     SDL_RenderPresent(app->renderer);
