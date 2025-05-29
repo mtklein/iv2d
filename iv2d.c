@@ -20,8 +20,8 @@ static float4 when(int4 mask, float4 v) {
 }
 
 // Estimate coverage of a region bounded by {l,t,r,b} with a limit on recursion depth.
-static float4 estimate_coverage(iv2d_region *region, void const *ctx,
-                                float l, float t, float r, float b, int limit) {
+static float4 estimate_coverage_(iv2d_region *region, void const *ctx,
+                                 float l, float t, float r, float b, int limit) {
     // Evaluate LT, LB, RT, and RB corners of the region.
     float const x = (l+r)/2,
                 y = (t+b)/2;
@@ -32,10 +32,10 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
 
     float4 cov = when(inside, (float4){1.0f,1.0f,1.0f,1.0f});
     if (--limit) {
-        if (uncertain[0]) { cov += estimate_coverage(region,ctx, l,t,x,y, limit); }
-        if (uncertain[1]) { cov += estimate_coverage(region,ctx, l,y,x,b, limit); }
-        if (uncertain[2]) { cov += estimate_coverage(region,ctx, x,t,r,y, limit); }
-        if (uncertain[3]) { cov += estimate_coverage(region,ctx, x,y,r,b, limit); }
+        if (uncertain[0]) { cov += estimate_coverage_(region,ctx, l,t,x,y, limit); }
+        if (uncertain[1]) { cov += estimate_coverage_(region,ctx, l,y,x,b, limit); }
+        if (uncertain[2]) { cov += estimate_coverage_(region,ctx, x,t,r,y, limit); }
+        if (uncertain[3]) { cov += estimate_coverage_(region,ctx, x,y,r,b, limit); }
     } else {
         // We may recurse no further, so remembering "negative inside, positive outside",
         // we estimate coverage for each uncertain corner as the proportion of its
@@ -43,6 +43,11 @@ static float4 estimate_coverage(iv2d_region *region, void const *ctx,
         cov += when(uncertain, corners.lo / (corners.lo - corners.hi));
     }
     return 0.25f * cov;
+}
+static float estimate_coverage(iv2d_region *region, void const *ctx,
+                               float l, float t, float r, float b, int limit) {
+    float4 const cov = estimate_coverage_(region,ctx, l,t,r,b, limit);
+    return cov[0]+cov[1]+cov[2]+cov[3];
 }
 
 static iv lane(int i, iv4 X) {
@@ -64,8 +69,7 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
         if (iv_classify(R) == UNCERTAIN) {
             if (r-l <= 1 && b-t <= 1) {
                 if (quality > 0) {
-                    float4 const cov4 = estimate_coverage(region,ctx, l,t,r,b, quality);
-                    float  const cov  = cov4[0] + cov4[1] + cov4[2] + cov4[3];
+                    float const cov = estimate_coverage(region,ctx, l,t,r,b, quality);
                     if (cov > 0) {
                         yield(arg, l,t,r,b, cov);
                     }
