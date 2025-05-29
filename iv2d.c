@@ -22,8 +22,8 @@ static enum {INSIDE=-1,UNCERTAIN=0,OUTSIDE=+1} classify(iv R) {
 
 // Estimate coverage of a region bounded by {l,t,r,b} using subdivision like iv2d_cover
 // but with a limit on recursion depth.
-static float estimate_coverage(iv2d_region *region, void const *ctx,
-                               float l, float t, float r, float b, int limit) {
+static float4 estimate_coverage(iv2d_region *region, void const *ctx,
+                                float l, float t, float r, float b, int limit) {
     float const x = (l+r)/2,
                 y = (t+b)/2;
 
@@ -39,17 +39,16 @@ static float estimate_coverage(iv2d_region *region, void const *ctx,
     float4 cov = when(inside, (float4){1.0f,1.0f,1.0f,1.0f});
 
     if (--limit) {
-        if (uncertain[0]) { cov[0] += estimate_coverage(region,ctx, l,t,x,y, limit); }
-        if (uncertain[1]) { cov[1] += estimate_coverage(region,ctx, l,y,x,b, limit); }
-        if (uncertain[2]) { cov[2] += estimate_coverage(region,ctx, x,t,r,y, limit); }
-        if (uncertain[3]) { cov[3] += estimate_coverage(region,ctx, x,y,r,b, limit); }
+        if (uncertain[0]) { cov += estimate_coverage(region,ctx, l,t,x,y, limit); }
+        if (uncertain[1]) { cov += estimate_coverage(region,ctx, l,y,x,b, limit); }
+        if (uncertain[2]) { cov += estimate_coverage(region,ctx, x,t,r,y, limit); }
+        if (uncertain[3]) { cov += estimate_coverage(region,ctx, x,y,r,b, limit); }
     } else {
         // We may recurse no further, so remembering "negative inside, positive outside",
         // we estimate coverage for each uncertain corner as the proportion that is negative.
         cov += when(uncertain, -corners.lo / (corners.hi - corners.lo));
     }
-
-    return 0.25f * (cov[0] + cov[1] + cov[2] + cov[3]);
+    return 0.25f * cov;
 }
 
 void iv2d_cover(iv2d_region *region, void const *ctx,
@@ -69,9 +68,10 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
                       y = (t+b)/2;
             if (l == x && t == y) {
                 if (quality > 0) {
-                    float const cov = estimate_coverage(region,ctx,
-                                                        (float)l, (float)t, (float)r, (float)b,
-                                                        quality);
+                    float4 const cov4 = estimate_coverage(region,ctx,
+                                                          (float)l, (float)t, (float)r, (float)b,
+                                                          quality);
+                    float const cov = cov4[0] + cov4[1] + cov4[2] + cov4[3];
                     if (cov > 0) {
                         yield(l,t,r,b, cov, arg);
                     }
