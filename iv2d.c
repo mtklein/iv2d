@@ -2,17 +2,16 @@
 
 typedef int __attribute__((vector_size(16))) int4;
 
-// Our core idea: a region function R=region(X,Y) is negative inside the region
-// or positive outside it.  By convention we treat an exact 0 (on the edge) as outside.
-// So all-negative means inside, all-non-negative outside, and a mix is uncertain.
+// Our core idea: a region function R=region(X,Y) is <= 0 inside the region or >0 outside it.
+// When lo < 0 < hi, we're uncertain if we're inside or outside the region.
 static enum {INSIDE,OUTSIDE,UNCERTAIN} iv_classify(iv R) {
-    if (R.hi < 0) { return    INSIDE; }   // [-,-]
-    if (R.lo < 0) { return UNCERTAIN; }   // [-,+] or [-,0]
-    return OUTSIDE;                       // [+,+] or [0,+] or [0,0]
+    if (R.hi <= 0) { return    INSIDE; }   // [-,-] or [-,0] or [0,0]
+    if (R.lo <  0) { return UNCERTAIN; }   // [-,+]
+    return OUTSIDE;                        // [+,+] or [0,+]
 }
 static void iv4_classify(iv4 R, int4 *inside, int4 *uncertain) {
-    *inside    = (R.hi < 0);
-    *uncertain = (R.lo < 0) & ~*inside;
+    *inside    = (R.hi <= 0);
+    *uncertain = (R.lo <  0) & ~*inside;
 }
 
 static float4 when(int4 mask, float4 v) {

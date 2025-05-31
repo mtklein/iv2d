@@ -4,7 +4,7 @@
 
 // A 2D region represented as an expression of X and Y.
 // The boundary of the region is f(X,Y)==0,
-// with f(X,Y)<0 for area within the region.
+// with f(X,Y)<=0 for area within the region.
 typedef iv4 iv2d_region(void const *ctx, iv4 X, iv4 Y);
 
 // iv2d_circle is a sample region, a circle centered at x,y with radius r.
@@ -13,7 +13,7 @@ typedef iv4 iv2d_region(void const *ctx, iv4 X, iv4 Y);
 //         (X - c.x)^2 + (Y - c.y)^2 == c.r^2
 //
 //   and the area inside that circle is described by the inequality
-//         (X - c.x)^2 + (Y - c.y)^2 <  c.r^2
+//         (X - c.x)^2 + (Y - c.y)^2 <= c.r^2
 //
 //   so iv2d_circle() returns the value
 //         (X - c.x)^2 + (Y - c.y)^2 -  c.r^2
