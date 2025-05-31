@@ -4,7 +4,7 @@
 
 // A 2D region represented as a signed distance function of X and Y.
 // The boundary of the region is f(X,Y)==0, with f(X,Y)<=0 for area within the region.
-typedef iv4 iv2d_region(void const *ctx, iv4 X, iv4 Y);
+typedef iv iv2d_region(void const *ctx, iv X, iv Y);
 
 // iv2d_circle is a sample region, a circle centered at x,y with radius r.
 //

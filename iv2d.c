@@ -1,8 +1,9 @@
 #include "iv2d.h"
+#include <math.h>
 
 // Our core idea: a region function R=region(X,Y) is <= 0 inside the region or >0 outside it.
 // When lo < 0 < hi, we're uncertain if we're inside or outside the region.
-static void classify(iv4 R, int4 *inside, int4 *uncertain) {
+static void classify(iv R, int4 *inside, int4 *uncertain) {
     *inside    = (R.hi <= 0);
     *uncertain = (R.lo <  0) & ~*inside;
 }
@@ -13,8 +14,8 @@ static float4 estimate_coverage_(iv2d_region *region, void const *ctx,
     // Evaluate LT, LB, RT, and RB corners of the region.
     float const x = (l+r)/2,
                 y = (t+b)/2;
-    iv4 const corners = region(ctx, (iv4){{l,l,x,x}, {x,x,r,r}}
-                                  , (iv4){{t,y,t,y}, {y,b,y,b}});
+    iv const corners = region(ctx, (iv){{l,l,x,x}, {x,x,r,r}}
+                                 , (iv){{t,y,t,y}, {y,b,y,b}});
     int4 inside, uncertain;
     classify(corners, &inside, &uncertain);
 
@@ -46,8 +47,8 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
         // Evaluate LT, LB, RT, and RB corners of the region, split at integer pixels.
         float const x = floorf( (l+r)/2 ),
                     y = floorf( (t+b)/2 );
-        iv4 const corners = region(ctx, (iv4){{l,l,x,x}, {x,x,r,r}}
-                                      , (iv4){{t,y,t,y}, {y,b,y,b}});
+        iv const corners = region(ctx, (iv){{l,l,x,x}, {x,x,r,r}}
+                                     , (iv){{t,y,t,y}, {y,b,y,b}});
         int4 inside,uncertain;
         classify(corners, &inside, &uncertain);
 
@@ -86,29 +87,29 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
     iv2d_cover_(region,ctx, (float)l, (float)t, (float)r, (float)b, quality, yield,arg);
 }
 
-static iv4 splat(float x) {
-    return (iv4){{x,x,x,x}, {x,x,x,x}};
+static iv splat(float x) {
+    return (iv){{x,x,x,x}, {x,x,x,x}};
 }
 
-iv4 iv2d_circle(void const *ctx, iv4 X, iv4 Y) {
+iv iv2d_circle(void const *ctx, iv X, iv Y) {
     struct iv2d_circle const *c = ctx;
-    return iv4_sub(iv4_add(iv4_square(iv4_sub(X, splat(c->x))),
-                           iv4_square(iv4_sub(Y, splat(c->y)))),
-                   splat(c->r * c->r));
+    return iv_sub(iv_add(iv_square(iv_sub(X, splat(c->x))),
+                         iv_square(iv_sub(Y, splat(c->y)))),
+                  splat(c->r * c->r));
 }
 
-iv4 iv2d_union(void const *ctx, iv4 X, iv4 Y) {
+iv iv2d_union(void const *ctx, iv X, iv Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_min(op->a(op->actx, X,Y),
-                   op->b(op->bctx, X,Y));
+    return iv_min(op->a(op->actx, X,Y),
+                  op->b(op->bctx, X,Y));
 }
-iv4 iv2d_intersection(void const *ctx, iv4 X, iv4 Y) {
+iv iv2d_intersection(void const *ctx, iv X, iv Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_max(op->a(op->actx, X,Y),
-                   op->b(op->bctx, X,Y));
+    return iv_max(op->a(op->actx, X,Y),
+                  op->b(op->bctx, X,Y));
 }
-iv4 iv2d_difference(void const *ctx, iv4 X, iv4 Y) {
+iv iv2d_difference(void const *ctx, iv X, iv Y) {
     struct iv2d_binop const *op = ctx;
-    return iv4_max(        op->a(op->actx, X,Y)  ,
-                   iv4_neg(op->b(op->bctx, X,Y)) );
+    return iv_max(       op->a(op->actx, X,Y)  ,
+                  iv_neg(op->b(op->bctx, X,Y)) );
 }
