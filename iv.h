@@ -32,8 +32,8 @@ static inline iv iv_mul(iv X, iv Y) {
                  c = X.lo * Y.hi,
                  d = X.hi * Y.hi;
     return (iv) {
-        __builtin_elementwise_min(__builtin_elementwise_min(a,d), __builtin_elementwise_min(b,c)),
-        __builtin_elementwise_max(__builtin_elementwise_max(a,d), __builtin_elementwise_max(b,c)),
+        __builtin_elementwise_min(__builtin_elementwise_min(a,b), __builtin_elementwise_min(c,d)),
+        __builtin_elementwise_max(__builtin_elementwise_max(a,b), __builtin_elementwise_max(c,d)),
     };
 }
 
