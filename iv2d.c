@@ -1,8 +1,8 @@
 #include "iv2d.h"
 #include <math.h>
 
-// Our core idea: a region function R=region(X,Y) is <= 0 inside the region or >0 outside it.
-// When lo < 0 < hi, we're uncertain if we're inside or outside the region.
+// Our core idea: a signed distance function R=region(X,Y) is <= 0 inside the region
+// or >0 outside it.  When lo < 0 < hi, we're uncertain if we're inside or outside the region.
 static void classify(iv R, int4 *inside, int4 *uncertain) {
     *inside    = (R.hi <= 0);
     *uncertain = (R.lo <  0) & ~*inside;
@@ -53,17 +53,17 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
         classify(corners, &inside, &uncertain);
 
         if (__builtin_reduce_and(inside)) {
-            yield(arg, l,t,r,b, 1.0f);
+            yield(arg, l,t,r,b, 1);
             return;
         }
 
-        if (inside[0] && inside[1] && l<x) { yield(arg, l,t,x,b, 1.0f); inside[0]=inside[1]=0; }
-        if (inside[2] && inside[3] && x<r) { yield(arg, x,t,r,b, 1.0f); inside[2]=inside[3]=0; }
-        if (inside[0] && inside[2] && t<y) { yield(arg, l,t,r,y, 1.0f); inside[0]=inside[2]=0; }
-        if (inside[1] && inside[3] && y<b) { yield(arg, l,y,r,b, 1.0f); inside[1]=inside[3]=0; }
+        if (inside[0] && inside[1] && l<x) { yield(arg, l,t,x,b, 1); inside[0] = inside[1] = 0; }
+        if (inside[2] && inside[3] && x<r) { yield(arg, x,t,r,b, 1); inside[2] = inside[3] = 0; }
+        if (inside[0] && inside[2] && t<y) { yield(arg, l,t,r,y, 1); inside[0] = inside[2] = 0; }
+        if (inside[1] && inside[3] && y<b) { yield(arg, l,y,r,b, 1); inside[1] = inside[3] = 0; }
 
         if (__builtin_reduce_or(uncertain)) {
-            if (r-l <= 1 && b-t <= 1) {
+            if (r-l <= 1 && b-t <= 1) {  // These floats hold integers, so actually compare ==.
                 if (quality > 0) {
                     float const cov = estimate_coverage(region,ctx, l,t,r,b, quality);
                     if (cov > 0) {
@@ -87,15 +87,15 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
     iv2d_cover_(region,ctx, (float)l, (float)t, (float)r, (float)b, quality, yield,arg);
 }
 
-static iv splat(float x) {
+static iv as_iv(float x) {
     return (iv){{x,x,x,x}, {x,x,x,x}};
 }
 
 iv iv2d_circle(void const *ctx, iv X, iv Y) {
     struct iv2d_circle const *c = ctx;
-    return iv_sub(iv_add(iv_square(iv_sub(X, splat(c->x))),
-                         iv_square(iv_sub(Y, splat(c->y)))),
-                  splat(c->r * c->r));
+    return iv_sub(iv_add(iv_square(iv_sub(X, as_iv(c->x))),
+                         iv_square(iv_sub(Y, as_iv(c->y)))),
+                  as_iv(c->r * c->r));
 }
 
 iv iv2d_union(void const *ctx, iv X, iv Y) {

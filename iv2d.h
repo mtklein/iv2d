@@ -26,7 +26,7 @@ struct iv2d_binop {
 iv2d_region iv2d_union, iv2d_intersection, iv2d_difference;
 
 // iv2d_cover rasterizes an iv2d_region onto a bounded integer grid, yielding
-// [0,1] coverage values for rectangles within bounds that overlap the region.
+// [0,1] coverage values for rectangles within {l,t,r,b} that overlap the region.
 //
 // The quality parameter controls how much attention iv2d_cover pays to pixels
 // overlapping the region's boundary.  If quality <= 0, it ignores them, and so
@@ -37,4 +37,3 @@ iv2d_region iv2d_union, iv2d_intersection, iv2d_difference;
 void iv2d_cover(iv2d_region*, void const *ctx,
                 int l, int t, int r, int b, int quality,
                 void (*yield)(void *arg, float l, float t, float r, float b, float cov), void *arg);
-
