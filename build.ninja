@@ -16,7 +16,7 @@ rule link
     command = $cc -dead_strip $in $flags -o $out
 
 rule run
-    command = ./$in > $out
+    command = ./$in $args > $out
 
 rule git_update
     command = git add -u && touch $out
@@ -25,11 +25,25 @@ build out/iv_test.o:  compile  iv_test.c
 build out/iv_test:    link out/iv_test.o
 build out/iv_test.ok: run  out/iv_test
 
-build out/iv2d.o:     compile iv2d.c
+build out/iv2d.o: compile iv2d.c
+
+build out/stb_image_write.o: compile stb_image_write.c
+    flags = -w
 
 build out/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
-build out/demo: link out/demo.o out/iv2d.o
+build out/demo: link out/demo.o out/iv2d.o out/stb_image_write.o
     flags = -L/opt/homebrew/lib -lSDL3
 
-build out/git_updated: git_update build.ninja out/iv_test.ok out/demo
+build gold/slim_difference-0.png: run out/demo
+    args = p ]] 600x402
+build gold/slim_difference-1.png: run out/demo
+    args = p ]] 600x402 +
+build gold/slim_difference-3.png: run out/demo
+    args = p ]] 600x402 +++
+
+build out/git_updated: git_update build.ninja out/iv_test.ok $
+    gold/slim_difference-0.png $
+    gold/slim_difference-1.png $
+    gold/slim_difference-3.png $
+

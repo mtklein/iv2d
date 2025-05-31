@@ -1,10 +1,16 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "iv2d.h"
+#include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
 
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
+
+static void write_to_stdout(void *ctx, void *buf, int len) {
+    (void)ctx;
+    fwrite(buf, 1, (size_t)len, stdout);
+}
 
 // TODO
 //   - add a recurse-into-9-sub-parts coverage strategy
@@ -20,11 +26,12 @@ struct app {
     SDL_Window   *window;
     SDL_Renderer *renderer;
     struct quad  *quad;
-    int           quads, quad_cap;
-    int           full, quality, draw_bounds, slide;
+    int           quads, quad_cap, full;
+    int           quality, slide;
+    bool          draw_bounds, write_png, paddingA[2];
 
     uint64_t frametime[32];
-    int      frametimes,padding;
+    int      frametimes, paddingB;
 };
 
 static void reset_frametimes(struct app *app) {
@@ -50,6 +57,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case ']': app->slide++; break;
 
             case 'b': app->draw_bounds ^= 1; break;
+            case 'p': app->write_png   ^= 1; break;
         }
     }
     return false;
@@ -71,12 +79,9 @@ static void queue_rect(void *arg, float l, float t, float r, float b, float cov)
 }
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        return SDL_APP_FAILURE;
-    }
+    struct app *app = *ctx = SDL_calloc(1, sizeof *app);
 
     int w=800, h=600;
-    struct app *app = *ctx = SDL_calloc(1, sizeof *app);
     for (int i = 1; i < argc; i++) {
         if (2 == sscanf(argv[i], "%dx%d", &w, &h)) {
             continue;
@@ -86,7 +91,11 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         }
     }
 
-    if (!SDL_CreateWindowAndRenderer("iv2d demo", w,h, SDL_WINDOW_RESIZABLE,
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        return SDL_APP_FAILURE;
+    }
+    if (!SDL_CreateWindowAndRenderer("iv2d demo", w,h,
+                                     SDL_WINDOW_RESIZABLE|(app->write_png ? SDL_WINDOW_HIDDEN : 0),
                                      &app->window, &app->renderer)) {
         SDL_free(app);
         SDL_Quit();
@@ -202,11 +211,23 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         SDL_SetRenderDrawColorFloat(app->renderer, 1,0,0,0.125);
         SDL_RenderRect             (app->renderer, &bounds);
     }
+
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
             "%s (%d), %dx%d, quality %d, %d full + %d partial, %lluµs",
             slides[slide].name, slide, w,h, app->quality, app->full, app->quads - app->full,
-            1000000 * avg_frametime / SDL_GetPerformanceFrequency());
+            app->write_png ? 0 : 1000000 * avg_frametime / SDL_GetPerformanceFrequency());
+
+    if (app->write_png) {
+        SDL_Surface *surf = SDL_RenderReadPixels(app->renderer, NULL),
+                    *rgba = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
+        SDL_DestroySurface(surf);
+
+        stbi_write_png_to_func(write_to_stdout,NULL,
+                               rgba->w, rgba->h, 4, rgba->pixels, rgba->pitch);
+        SDL_DestroySurface(rgba);
+        return SDL_APP_SUCCESS;
+    }
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
