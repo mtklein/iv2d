@@ -7,6 +7,11 @@ typedef struct {
 } iv;
 
 typedef float __attribute__((vector_size(16))) float4;
+typedef   int __attribute__((vector_size(16)))   int4;
+
+static inline float4 when(int4 mask, float4 v) {
+    return (float4)( mask & (int4)v );
+}
 
 typedef struct {
     float4 lo,hi;
@@ -107,23 +112,19 @@ static inline iv4 iv4_sqrt(iv4 X) {
 }
 
 static inline iv iv_square(iv X) {
-    // [+a,+b]^2 = [a^2, b^2]
-    // [-a,-b]^2 = [b^2, a^2]
-    // [-a,+b]^2 = [-a,+b] x [-a,+b] = [-ab, max(a^2,b^2)]
     float const a2 = X.lo * X.lo,
-                ab = X.lo * X.hi,
                 b2 = X.hi * X.hi;
-    return (iv){
-        fminf(ab, fminf(a2, b2)),
-                  fmaxf(a2, b2) ,
-    };
+    if (X.lo > 0 || X.hi < 0) {
+        return (iv){fminf(a2,b2), fmaxf(a2,b2)};
+    } else {
+        return (iv){           0, fmaxf(a2,b2)};
+    }
 }
 static inline iv4 iv4_square(iv4 X) {
     float4 const a2 = X.lo * X.lo,
-                 ab = X.lo * X.hi,
                  b2 = X.hi * X.hi;
     return (iv4){
-        __builtin_elementwise_min(ab, __builtin_elementwise_min(a2, b2)),
-                                      __builtin_elementwise_max(a2, b2) ,
+        when(X.lo > 0 | X.hi < 0, __builtin_elementwise_min(a2,b2)),
+                                  __builtin_elementwise_max(a2,b2) ,
     };
 }

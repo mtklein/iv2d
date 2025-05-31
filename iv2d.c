@@ -1,16 +1,10 @@
 #include "iv2d.h"
 
-typedef int __attribute__((vector_size(16))) int4;
-
 // Our core idea: a region function R=region(X,Y) is <= 0 inside the region or >0 outside it.
 // When lo < 0 < hi, we're uncertain if we're inside or outside the region.
 static void classify(iv4 R, int4 *inside, int4 *uncertain) {
     *inside    = (R.hi <= 0);
     *uncertain = (R.lo <  0) & ~*inside;
-}
-
-static float4 when(int4 mask, float4 v) {
-    return (float4)( mask & (int4)v );
 }
 
 // Estimate coverage of a region bounded by {l,t,r,b} with a limit on recursion depth.

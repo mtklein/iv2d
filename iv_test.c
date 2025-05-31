@@ -1,7 +1,6 @@
 #include "iv.h"
 #include <stdio.h>
 
-#define len(x) (int)(sizeof(x) / sizeof(x[0]))
 #define expect(x) if (!(x)) dprintf(2, "%s:%d %s expect(%s)\n", __FILE__, __LINE__, __func__, #x), \
                             __builtin_debugtrap()
 
@@ -103,12 +102,35 @@ static void test_sqrt(void) {
 }
 
 static void test_square(void) {
-    iv X[] = { {3,4}, {-3,4}, {-5,-1}, {0,4}, {-2,0}, {0,0} };
-    for (int i = 0; i < len(X); i++) {
-        iv const got = iv_square(X[i]),
-                want = iv_mul   (X[i], X[i]);
-        expect(equiv(got.lo, want.lo));
-        expect(equiv(got.hi, want.hi));
+    {
+        iv Z = iv_square((iv){3,4});
+        expect(equiv(Z.lo,  9));
+        expect(equiv(Z.hi, 16));
+    }
+    {
+        iv Z = iv_square((iv){-3,4});
+        expect(equiv(Z.lo,  0));
+        expect(equiv(Z.hi, 16));
+    }
+    {
+        iv Z = iv_square((iv){-5,-1});
+        expect(equiv(Z.lo,  1));
+        expect(equiv(Z.hi, 25));
+    }
+    {
+        iv Z = iv_square((iv){0,4});
+        expect(equiv(Z.lo,  0));
+        expect(equiv(Z.hi, 16));
+    }
+    {
+        iv Z = iv_square((iv){-2,0});
+        expect(equiv(Z.lo, 0));
+        expect(equiv(Z.hi, 4));
+    }
+    {
+        iv Z = iv_square((iv){0,0});
+        expect(equiv(Z.lo, 0));
+        expect(equiv(Z.hi, 0));
     }
 }
 
