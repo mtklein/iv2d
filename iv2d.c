@@ -48,7 +48,7 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
                         float l, float t, float r, float b,
                         int quality,
                         void (*yield)(void*, float,float,float,float, float), void *arg) {
-    if (l < r && t < b) {
+    if (l<r && t<b) {
         // Evaluate LT, LB, RT, and RB corners of the region, split at integer pixels.
         float const x = floorf( (l+r)/2 ),
                     y = floorf( (t+b)/2 );
@@ -61,6 +61,11 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
             yield(arg, l,t,r,b, 1.0f);
             return;
         }
+
+        if (inside[0] && inside[1] && l<x) { yield(arg, l,t,x,b, 1.0f); inside[0]=inside[1]=0; }
+        if (inside[2] && inside[3] && x<r) { yield(arg, x,t,r,b, 1.0f); inside[2]=inside[3]=0; }
+        if (inside[0] && inside[2] && t<y) { yield(arg, l,t,r,y, 1.0f); inside[0]=inside[2]=0; }
+        if (inside[1] && inside[3] && y<b) { yield(arg, l,y,r,b, 1.0f); inside[1]=inside[3]=0; }
 
         if (__builtin_reduce_or(uncertain)) {
             if (r-l <= 1 && b-t <= 1) {
