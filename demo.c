@@ -91,17 +91,18 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         }
     }
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        return SDL_APP_FAILURE;
+    if (app->write_png) {
+        app->renderer = SDL_CreateSoftwareRenderer(SDL_CreateSurface(w,h, SDL_PIXELFORMAT_RGBA32));
+    } else {
+         if (!SDL_Init(SDL_INIT_VIDEO) ||
+             !SDL_CreateWindowAndRenderer("iv2d demo", w,h, SDL_WINDOW_RESIZABLE,
+                                          &app->window, &app->renderer)) {
+            SDL_free(app);
+            SDL_Quit();
+            return SDL_APP_FAILURE;
+        }
+        SDL_SetWindowPosition(app->window, 0,0);
     }
-    if (!SDL_CreateWindowAndRenderer("iv2d demo", w,h,
-                                     SDL_WINDOW_RESIZABLE|(app->write_png ? SDL_WINDOW_HIDDEN : 0),
-                                     &app->window, &app->renderer)) {
-        SDL_free(app);
-        SDL_Quit();
-        return SDL_APP_FAILURE;
-    }
-    SDL_SetWindowPosition(app->window, 0,0);
     return SDL_APP_CONTINUE;
 }
 
