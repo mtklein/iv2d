@@ -22,7 +22,16 @@ struct app {
     struct quad  *quad;
     int           quads, quad_cap;
     int           full, quality, draw_bounds, slide;
+
+    uint64_t frametime[32];
+    int      frametimes,padding;
 };
+
+static void reset_frametimes(struct app *app) {
+    for (int i = 0; i < len(app->frametime); i++) {
+        app->frametime[i] = 0;
+    }
+}
 
 static _Bool handle_keys(struct app *app, char const *key) {
     while (*key) {
@@ -107,9 +116,14 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
             return SDL_APP_SUCCESS;
 
         case SDL_EVENT_KEY_DOWN:
+            reset_frametimes(app);
             if (handle_keys(app, (char const[]){(char)event->key.key,0})) {
                 return SDL_APP_SUCCESS;
             }
+            break;
+
+        case SDL_EVENT_WINDOW_RESIZED:
+            reset_frametimes(app);
             break;
     }
     return SDL_APP_CONTINUE;
@@ -153,7 +167,18 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     {
         iv2d_cover(slides[slide].region, &scene, 0,0,w,h, app->quality, queue_rect,app);
     }
-    uint64_t const elapsed = SDL_GetPerformanceCounter() - start;
+    app->frametime[app->frametimes++ % len(app->frametime)] = SDL_GetPerformanceCounter() - start;
+
+    uint64_t avg_frametime;
+    {
+        uint64_t sum = 0;
+        int  nonzero = 0;
+        for (int i = 0; i < len(app->frametime); i++) {
+            sum     += app->frametime[i];
+            nonzero += app->frametime[i] > 0;
+        }
+        avg_frametime = sum / (unsigned)nonzero;
+    }
 
     SDL_RenderGeometryRaw(app->renderer, NULL
                                        , &app->quad->vertex->x, sizeof *app->quad->vertex
@@ -181,7 +206,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
             "%s (%d), %dx%d, quality %d, %d full + %d partial, %lluµs",
             slides[slide].name, slide, w,h, app->quality, app->full, app->quads - app->full,
-            1000000 * elapsed / SDL_GetPerformanceFrequency());
+            1000000 * avg_frametime / SDL_GetPerformanceFrequency());
 
     SDL_RenderPresent(app->renderer);
     return SDL_APP_CONTINUE;
