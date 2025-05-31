@@ -66,17 +66,25 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         return SDL_APP_FAILURE;
     }
 
+    int w=800, h=600;
     struct app *app = *ctx = SDL_calloc(1, sizeof *app);
+    for (int i = 1; i < argc; i++) {
+        if (2 == sscanf(argv[i], "%dx%d", &w, &h)) {
+            continue;
+        }
+        if (handle_keys(app, argv[i])) {
+            return SDL_APP_SUCCESS;
+        }
+    }
 
-    if (!SDL_CreateWindowAndRenderer("iv2d demo", 600, 402, SDL_WINDOW_RESIZABLE,
+    if (!SDL_CreateWindowAndRenderer("iv2d demo", w,h, SDL_WINDOW_RESIZABLE,
                                      &app->window, &app->renderer)) {
         SDL_free(app);
         SDL_Quit();
         return SDL_APP_FAILURE;
     }
     SDL_SetWindowPosition(app->window, 0,0);
-
-    return (argc > 1 && handle_keys(app, argv[1])) ? SDL_APP_SUCCESS : SDL_APP_CONTINUE;
+    return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *ctx, SDL_AppResult res) {
