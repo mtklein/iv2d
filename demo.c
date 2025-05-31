@@ -15,7 +15,6 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 // TODO
 //   - add a recurse-into-9-sub-parts coverage strategy
 //   - add a scanlines coverage strategy
-//   - how to best use vectorization in iv2d_cover()?
 //   - cover with other shapes?  triangles, quads?
 
 struct quad {

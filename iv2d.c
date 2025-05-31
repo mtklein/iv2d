@@ -4,12 +4,7 @@ typedef int __attribute__((vector_size(16))) int4;
 
 // Our core idea: a region function R=region(X,Y) is <= 0 inside the region or >0 outside it.
 // When lo < 0 < hi, we're uncertain if we're inside or outside the region.
-static enum {INSIDE,OUTSIDE,UNCERTAIN} iv_classify(iv R) {
-    if (R.hi <= 0) { return    INSIDE; }   // [-,-] or [-,0] or [0,0]
-    if (R.lo <  0) { return UNCERTAIN; }   // [-,+]
-    return OUTSIDE;                        // [+,+] or [0,+]
-}
-static void iv4_classify(iv4 R, int4 *inside, int4 *uncertain) {
+static void classify(iv4 R, int4 *inside, int4 *uncertain) {
     *inside    = (R.hi <= 0);
     *uncertain = (R.lo <  0) & ~*inside;
 }
@@ -27,7 +22,7 @@ static float4 estimate_coverage_(iv2d_region *region, void const *ctx,
     iv4 const corners = region(ctx, (iv4){{l,l,x,x}, {x,x,r,r}}
                                   , (iv4){{t,y,t,y}, {y,b,y,b}});
     int4 inside, uncertain;
-    iv4_classify(corners, &inside, &uncertain);
+    classify(corners, &inside, &uncertain);
 
     float4 cov = when(inside, (float4){1.0f,1.0f,1.0f,1.0f});
     if (--limit) {
@@ -49,23 +44,25 @@ static float estimate_coverage(iv2d_region *region, void const *ctx,
     return cov[0]+cov[1]+cov[2]+cov[3];
 }
 
-static iv lane(int i, iv4 X) {
-    return (iv){X.lo[i], X.hi[i]};
-}
-
 static void iv2d_cover_(iv2d_region *region, void const *ctx,
                         float l, float t, float r, float b,
                         int quality,
                         void (*yield)(void*, float,float,float,float, float), void *arg) {
     if (l < r && t < b) {
-        // TODO: how to vectorize better here?  3/4 of this call to region() is wasted.
-        iv  const R = lane(0, region(ctx, (iv4){{l},{r}}
-                                        , (iv4){{t},{b}}));
+        // Evaluate LT, LB, RT, and RB corners of the region, split at integer pixels.
+        float const x = floorf( (l+r)/2 ),
+                    y = floorf( (t+b)/2 );
+        iv4 const corners = region(ctx, (iv4){{l,l,x,x}, {x,x,r,r}}
+                                      , (iv4){{t,y,t,y}, {y,b,y,b}});
+        int4 inside,uncertain;
+        classify(corners, &inside, &uncertain);
 
-        if (iv_classify(R) == INSIDE) {
+        if (__builtin_reduce_and(inside)) {
             yield(arg, l,t,r,b, 1.0f);
+            return;
         }
-        if (iv_classify(R) == UNCERTAIN) {
+
+        if (__builtin_reduce_or(uncertain)) {
             if (r-l <= 1 && b-t <= 1) {
                 if (quality > 0) {
                     float const cov = estimate_coverage(region,ctx, l,t,r,b, quality);
@@ -74,12 +71,11 @@ static void iv2d_cover_(iv2d_region *region, void const *ctx,
                     }
                 }
             } else {
-                float const x = floorf( (l+r)/2 ),
-                            y = floorf( (t+b)/2 );
-                iv2d_cover_(region,ctx, l,t,x,y, quality, yield,arg);
-                iv2d_cover_(region,ctx, l,y,x,b, quality, yield,arg);
-                iv2d_cover_(region,ctx, x,t,r,y, quality, yield,arg);
-                iv2d_cover_(region,ctx, x,y,r,b, quality, yield,arg);
+                int4 const not_outside = inside | uncertain;
+                if (not_outside[0]) { iv2d_cover_(region,ctx, l,t,x,y, quality, yield,arg); }
+                if (not_outside[1]) { iv2d_cover_(region,ctx, l,y,x,b, quality, yield,arg); }
+                if (not_outside[2]) { iv2d_cover_(region,ctx, x,t,r,y, quality, yield,arg); }
+                if (not_outside[3]) { iv2d_cover_(region,ctx, x,y,r,b, quality, yield,arg); }
             }
         }
     }
