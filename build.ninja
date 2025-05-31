@@ -42,8 +42,18 @@ build gold/slim_difference-1.png: run out/demo
 build gold/slim_difference-3.png: run out/demo
     args = p ]] 600x402 +++
 
+build gold/fat_difference-0.png: run out/demo
+    args = p ]] 800x600
+build gold/fat_difference-1.png: run out/demo
+    args = p ]] 800x600 +
+build gold/fat_difference-3.png: run out/demo
+    args = p ]] 800x600 +++
+
 build out/git_updated: git_update build.ninja out/iv_test.ok $
     gold/slim_difference-0.png $
     gold/slim_difference-1.png $
     gold/slim_difference-3.png $
+    gold/fat_difference-0.png $
+    gold/fat_difference-1.png $
+    gold/fat_difference-3.png $
 
