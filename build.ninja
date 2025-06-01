@@ -18,9 +18,6 @@ rule link
 rule run
     command = ./$in $args > $out
 
-rule git_update
-    command = git add -u && touch $out
-
 build out/iv_test.o:  compile  iv_test.c
 build out/iv_test:    link out/iv_test.o
 build out/iv_test.ok: run  out/iv_test
@@ -48,12 +45,3 @@ build gold/fat_difference-1.png: run out/demo
     args = p ]] 800x600 +
 build gold/fat_difference-3.png: run out/demo
     args = p ]] 800x600 +++
-
-build out/git_updated: git_update build.ninja out/iv_test.ok $
-    gold/slim_difference-0.png $
-    gold/slim_difference-1.png $
-    gold/slim_difference-3.png $
-    gold/fat_difference-0.png $
-    gold/fat_difference-1.png $
-    gold/fat_difference-3.png $
-
