@@ -11,62 +11,65 @@ typedef struct {
     float4 lo,hi;
 } iv;
 
+static inline iv as_iv(float x) {
+    return (iv){{x,x,x,x}, {x,x,x,x}};
+}
 
-static inline iv iv_add(iv X, iv Y) {
+static inline iv iv_add(iv x, iv y) {
     return (iv){
-        X.lo + Y.lo,
-        X.hi + Y.hi,
+        x.lo + y.lo,
+        x.hi + y.hi,
     };
 }
 
-static inline iv iv_sub(iv X, iv Y) {
+static inline iv iv_sub(iv x, iv y) {
     return (iv){
-        X.lo - Y.hi,
-        X.hi - Y.lo,
+        x.lo - y.hi,
+        x.hi - y.lo,
     };
 }
 
-static inline iv iv_mul(iv X, iv Y) {
-    float4 const a = X.lo * Y.lo,
-                 b = X.hi * Y.lo,
-                 c = X.lo * Y.hi,
-                 d = X.hi * Y.hi;
+static inline iv iv_mul(iv x, iv y) {
+    float4 const a = x.lo * y.lo,
+                 b = x.hi * y.lo,
+                 c = x.lo * y.hi,
+                 d = x.hi * y.hi;
     return (iv) {
         __builtin_elementwise_min(__builtin_elementwise_min(a,b), __builtin_elementwise_min(c,d)),
         __builtin_elementwise_max(__builtin_elementwise_max(a,b), __builtin_elementwise_max(c,d)),
     };
 }
 
-static inline iv iv_min(iv X, iv Y) {
+static inline iv iv_min(iv x, iv y) {
     return (iv){
-        __builtin_elementwise_min(X.lo, Y.lo),
-        __builtin_elementwise_min(X.hi, Y.hi),
+        __builtin_elementwise_min(x.lo, y.lo),
+        __builtin_elementwise_min(x.hi, y.hi),
     };
 }
 
-static inline iv iv_max(iv X, iv Y) {
+static inline iv iv_max(iv x, iv y) {
     return (iv){
-        __builtin_elementwise_max(X.lo, Y.lo),
-        __builtin_elementwise_max(X.hi, Y.hi),
+        __builtin_elementwise_max(x.lo, y.lo),
+        __builtin_elementwise_max(x.hi, y.hi),
     };
 }
 
-static inline iv iv_neg(iv X) {
-    return iv_sub((iv){0}, X);
+static inline iv iv_neg(iv x) {
+    return iv_sub((iv){0}, x);
 }
 
-static inline iv iv_sqrt(iv X) {
+static inline iv iv_sqrt(iv x) {
     return (iv){
-        __builtin_elementwise_sqrt(X.lo),
-        __builtin_elementwise_sqrt(X.hi),
+        __builtin_elementwise_sqrt(x.lo),
+        __builtin_elementwise_sqrt(x.hi),
     };
 }
 
-static inline iv iv_square(iv X) {
-    float4 const a2 = X.lo * X.lo,
-                 b2 = X.hi * X.hi;
+static inline iv iv_square(iv x) {
+    float4 const a2 = x.lo * x.lo,
+                 b2 = x.hi * x.hi;
     return (iv){
-        when(X.lo > 0 | X.hi < 0, __builtin_elementwise_min(a2,b2)),
+        when(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a2,b2)),
                                   __builtin_elementwise_max(a2,b2) ,
     };
 }

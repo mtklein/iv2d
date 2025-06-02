@@ -10,88 +10,88 @@ static _Bool equiv(float x, float y) {
 }
 
 static void test_add(void) {
-    iv Z = iv_add((iv){{3},{4}}, (iv){{5},{6}});
-    expect(equiv(Z.lo[0],  8));
-    expect(equiv(Z.hi[0], 10));
+    iv z = iv_add((iv){{3},{4}}, (iv){{5},{6}});
+    expect(equiv(z.lo[0],  8));
+    expect(equiv(z.hi[0], 10));
 }
 
 static void test_sub(void) {
-    iv Z = iv_sub((iv){{3},{4}}, (iv){{5},{6}});
-    expect(equiv(Z.lo[0], -3));
-    expect(equiv(Z.hi[0], -1));
+    iv z = iv_sub((iv){{3},{4}}, (iv){{5},{6}});
+    expect(equiv(z.lo[0], -3));
+    expect(equiv(z.hi[0], -1));
 }
 
 static void test_mul(void) {
-    iv Z = iv_mul((iv){{3,-3,-3,-3},{4,4,4, 4}},
+    iv z = iv_mul((iv){{3,-3,-3,-3},{4,4,4, 4}},
                   (iv){{5, 5,-5,-5},{6,6,6,-1}});
-    expect(equiv(Z.lo[0],  15));
-    expect(equiv(Z.hi[0],  24));
+    expect(equiv(z.lo[0],  15));
+    expect(equiv(z.hi[0],  24));
 
-    expect(equiv(Z.lo[1], -18));
-    expect(equiv(Z.hi[1],  24));
+    expect(equiv(z.lo[1], -18));
+    expect(equiv(z.hi[1],  24));
 
-    expect(equiv(Z.lo[2], -20));
-    expect(equiv(Z.hi[2],  24));
+    expect(equiv(z.lo[2], -20));
+    expect(equiv(z.hi[2],  24));
 
-    expect(equiv(Z.lo[3], -20));
-    expect(equiv(Z.hi[3],  15));
+    expect(equiv(z.lo[3], -20));
+    expect(equiv(z.hi[3],  15));
 }
 
 static void test_min(void) {
-    iv Z = iv_min((iv){{3,-3,-3},{4,4, 4}},
+    iv z = iv_min((iv){{3,-3,-3},{4,4, 4}},
                   (iv){{5,-5,-5},{6,6,-1}});
-    expect(equiv(Z.lo[0],  3));
-    expect(equiv(Z.hi[0],  4));
+    expect(equiv(z.lo[0],  3));
+    expect(equiv(z.hi[0],  4));
 
-    expect(equiv(Z.lo[1], -5));
-    expect(equiv(Z.hi[1],  4));
+    expect(equiv(z.lo[1], -5));
+    expect(equiv(z.hi[1],  4));
 
-    expect(equiv(Z.lo[2], -5));
-    expect(equiv(Z.hi[2], -1));
+    expect(equiv(z.lo[2], -5));
+    expect(equiv(z.hi[2], -1));
 }
 
 static void test_max(void) {
-    iv Z = iv_max((iv){{3,-3,-3},{4,4, 4}},
+    iv z = iv_max((iv){{3,-3,-3},{4,4, 4}},
                   (iv){{5,-5,-5},{6,6,-1}});
-    expect(equiv(Z.lo[0],  5));
-    expect(equiv(Z.hi[0],  6));
+    expect(equiv(z.lo[0],  5));
+    expect(equiv(z.hi[0],  6));
 
-    expect(equiv(Z.lo[1], -3));
-    expect(equiv(Z.hi[1],  6));
+    expect(equiv(z.lo[1], -3));
+    expect(equiv(z.hi[1],  6));
 
-    expect(equiv(Z.lo[2], -3));
-    expect(equiv(Z.hi[2],  4));
+    expect(equiv(z.lo[2], -3));
+    expect(equiv(z.hi[2],  4));
 }
 
 static void test_sqrt(void) {
-    iv Z = iv_sqrt((iv){{4},{16}});
-    expect(equiv(Z.lo[0], 2));
-    expect(equiv(Z.hi[0], 4));
+    iv z = iv_sqrt((iv){{4},{16}});
+    expect(equiv(z.lo[0], 2));
+    expect(equiv(z.hi[0], 4));
 }
 
 static void test_square(void) {
     {
-        iv Z = iv_square((iv){{3,-3,-5},{4,4,-1}});
-        expect(equiv(Z.lo[0],  9));
-        expect(equiv(Z.hi[0], 16));
+        iv z = iv_square((iv){{3,-3,-5},{4,4,-1}});
+        expect(equiv(z.lo[0],  9));
+        expect(equiv(z.hi[0], 16));
 
-        expect(equiv(Z.lo[1],  0));
-        expect(equiv(Z.hi[1], 16));
+        expect(equiv(z.lo[1],  0));
+        expect(equiv(z.hi[1], 16));
 
-        expect(equiv(Z.lo[2],  1));
-        expect(equiv(Z.hi[2], 25));
+        expect(equiv(z.lo[2],  1));
+        expect(equiv(z.hi[2], 25));
     }
 
     {
-        iv Z = iv_square((iv){{0,-2,0},{4,0,0}});
-        expect(equiv(Z.lo[0],  0));
-        expect(equiv(Z.hi[0], 16));
+        iv z = iv_square((iv){{0,-2,0},{4,0,0}});
+        expect(equiv(z.lo[0],  0));
+        expect(equiv(z.hi[0], 16));
 
-        expect(equiv(Z.lo[1],  0));
-        expect(equiv(Z.hi[1],  4));
+        expect(equiv(z.lo[1],  0));
+        expect(equiv(z.hi[1],  4));
 
-        expect(equiv(Z.lo[2],  0));
-        expect(equiv(Z.hi[2],  0));
+        expect(equiv(z.lo[2],  0));
+        expect(equiv(z.hi[2],  0));
     }
 }
 

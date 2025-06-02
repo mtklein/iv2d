@@ -87,29 +87,25 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
     iv2d_cover_(region,ctx, (float)l, (float)t, (float)r, (float)b, quality, yield,arg);
 }
 
-static iv as_iv(float x) {
-    return (iv){{x,x,x,x}, {x,x,x,x}};
-}
-
-iv iv2d_circle(void const *ctx, iv X, iv Y) {
+iv iv2d_circle(void const *ctx, iv x, iv y) {
     struct iv2d_circle const *c = ctx;
-    return iv_sub(iv_add(iv_square(iv_sub(X, as_iv(c->x))),
-                         iv_square(iv_sub(Y, as_iv(c->y)))),
+    return iv_sub(iv_add(iv_square(iv_sub(x, as_iv(c->x))),
+                         iv_square(iv_sub(y, as_iv(c->y)))),
                   as_iv(c->r * c->r));
 }
 
-iv iv2d_union(void const *ctx, iv X, iv Y) {
+iv iv2d_union(void const *ctx, iv x, iv y) {
     struct iv2d_binop const *op = ctx;
-    return iv_min(op->a(op->actx, X,Y),
-                  op->b(op->bctx, X,Y));
+    return iv_min(op->a(op->actx, x,y),
+                  op->b(op->bctx, x,y));
 }
-iv iv2d_intersection(void const *ctx, iv X, iv Y) {
+iv iv2d_intersection(void const *ctx, iv x, iv y) {
     struct iv2d_binop const *op = ctx;
-    return iv_max(op->a(op->actx, X,Y),
-                  op->b(op->bctx, X,Y));
+    return iv_max(op->a(op->actx, x,y),
+                  op->b(op->bctx, x,y));
 }
-iv iv2d_difference(void const *ctx, iv X, iv Y) {
+iv iv2d_difference(void const *ctx, iv x, iv y) {
     struct iv2d_binop const *op = ctx;
-    return iv_max(       op->a(op->actx, X,Y)  ,
-                  iv_neg(op->b(op->bctx, X,Y)) );
+    return iv_max(       op->a(op->actx, x,y)  ,
+                  iv_neg(op->b(op->bctx, x,y)) );
 }
