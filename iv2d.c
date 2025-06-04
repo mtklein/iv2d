@@ -88,13 +88,11 @@ void iv2d_cover(iv2d_region *region, void const *ctx,
 }
 
 iv iv2d_circle(void const *ctx, iv x, iv y) {
-    struct iv2d_circle const *c = ctx;
-    return iv_sub(iv_add(iv_square(iv_sub(x, as_iv(c->x))),
-                         iv_square(iv_sub(y, as_iv(c->y)))),
-                  as_iv(c->r * c->r));
+    (void)ctx;
+    return iv_sub(iv_add(iv_square(x), iv_square(y)), as_iv(1));
 }
 
-_Bool iv2d_invert(struct iv2d_affine *inv, struct iv2d_affine m) {
+_Bool iv2d_invert(struct iv2d_affine m, struct iv2d_affine *inv) {
     float const dinv = 1.0f / (m.sx*m.sy - m.kx*m.ky);
     if (!isfinite(dinv)) {
         return 0;
@@ -110,7 +108,7 @@ _Bool iv2d_invert(struct iv2d_affine *inv, struct iv2d_affine m) {
 
 iv iv2d_transform(void const *ctx, iv x, iv y) {
     struct iv2d_transform const *xform = ctx;
-    struct iv2d_affine    const      m = xform->minv;
+    struct iv2d_affine    const      m = xform->m;
     iv X = iv_mad(x, as_iv(m.sx), iv_mad(y, as_iv(m.kx), as_iv(m.tx))),
        Y = iv_mad(x, as_iv(m.ky), iv_mad(y, as_iv(m.sy), as_iv(m.ty)));
     return xform->region(xform->ctx, X,Y);
