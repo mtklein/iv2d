@@ -150,36 +150,30 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     int w,h;
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
+    // Draw a circle centered in the window directly.
     float const cx = 0.5f * (float)w,
-                cy = 0.5f * (float)h,
-                cr = 0.5f * fminf(cx,cy);
+                cy = 0.5f * (float)h;
+    struct iv2d_circle const centered_circle = {cx,cy, 0.5f*fminf(cx,cy)};
 
-    struct iv2d_affine const centered = {
-        cr,0,cx,
-        0,cr,cy,
-    };
-    struct iv2d_affine const fixed = {
-        100,0,300,
-        0,100,200,
-    };
+    // Draw a fixed-size circle using iv2d_transform.
+    struct iv2d_circle const unit_circle = {0,0,1};
+    struct iv2d_transform fixed_circle = {.region=iv2d_circle, .ctx=&unit_circle};
+    check(iv2d_invert(&fixed_circle.minv, (struct iv2d_affine){100,0,300,
+                                                               0,100,200}));
 
-    struct iv2d_transform centered_circle = {.region=iv2d_circle},
-                             fixed_circle = {.region=iv2d_circle};
-    check(iv2d_invert(centered, &centered_circle.m));
-    check(iv2d_invert(   fixed, &   fixed_circle.m));
-
-    struct iv2d_binop const scene = {
-        iv2d_transform, &centered_circle,
-        iv2d_transform, &   fixed_circle,
+    struct iv2d_binop const binop = {
+        iv2d_circle, &centered_circle,
+        iv2d_transform, &fixed_circle,
     };
 
     struct {
         iv2d_region *region;
+        void const  *ctx;
         char const  *name;
     } slides[] = {
-        {iv2d_union       , "union"       },
-        {iv2d_intersection, "intersection"},
-        {iv2d_difference  , "difference"  },
+        {iv2d_union       , &binop, "union"       },
+        {iv2d_intersection, &binop, "intersection"},
+        {iv2d_difference  , &binop, "difference"  },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
@@ -187,7 +181,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     uint64_t const start = SDL_GetPerformanceCounter();
     {
-        iv2d_cover(slides[slide].region, &scene, 0,0,w,h, app->quality, queue_rect,app);
+        iv2d_cover(slides[slide].region, slides[slide].ctx, 0,0,w,h, app->quality, queue_rect,app);
     }
     app->frametime[app->frametimes++ % len(app->frametime)] = SDL_GetPerformanceCounter() - start;
 
