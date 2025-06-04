@@ -160,6 +160,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         iv2d_circle, &fixed,
     };
 
+    struct iv2d_capsule const capsule = {
+        300,200, cx,cy, 4,
+    };
+
     struct {
         iv2d_region *region;
         void const  *ctx;
@@ -168,6 +172,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {iv2d_union       , &binop, "union"       },
         {iv2d_intersection, &binop, "intersection"},
         {iv2d_difference  , &binop, "difference"  },
+        {iv2d_capsule, &capsule, "capsule"},
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }

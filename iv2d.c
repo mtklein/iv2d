@@ -94,6 +94,26 @@ iv iv2d_circle(void const *ctx, iv x, iv y) {
                   as_iv(c->r * c->r));
 }
 
+iv iv2d_capsule(void const *ctx, iv x, iv y) {
+    struct iv2d_capsule const *c = ctx;
+
+    float const dx = c->x1 - c->x0,
+                dy = c->y1 - c->y0;
+
+    iv const px = iv_sub(x, as_iv(c->x0)),
+             py = iv_sub(y, as_iv(c->y0));
+
+    iv const t = iv_mul(iv_add(iv_mul(px, as_iv(dx)),
+                               iv_mul(py, as_iv(dy))),
+                        as_iv(1 / (dx*dx + dy*dy)));
+
+    iv const h = iv_max(as_iv(0), iv_min(t, as_iv(1)));
+
+    return iv_sub(iv_add(iv_square(iv_sub(px, iv_mul(h, as_iv(dx)))),
+                         iv_square(iv_sub(py, iv_mul(h, as_iv(dy))))),
+                  as_iv(c->r * c->r));
+}
+
 iv iv2d_union(void const *ctx, iv x, iv y) {
     struct iv2d_binop const *op = ctx;
     return iv_min(op->a(op->actx, x,y),

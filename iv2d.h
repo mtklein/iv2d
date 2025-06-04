@@ -19,6 +19,10 @@ typedef iv iv2d_region(void const *ctx, iv X, iv Y);
 struct iv2d_circle { float x,y,r; };
 iv2d_region iv2d_circle;
 
+// Points within distance r of the line segment from x0,y0 to x1,y1.
+struct iv2d_capsule { float x0,y0, x1,y1, r; };
+iv2d_region iv2d_capsule;
+
 struct iv2d_binop {
     iv2d_region *a; void const *actx;
     iv2d_region *b; void const *bctx;
