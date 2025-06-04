@@ -6,21 +6,18 @@
 // The boundary of the region is f(X,Y)==0, with f(X,Y)<=0 for area within the region.
 typedef iv iv2d_region(void const *ctx, iv X, iv Y);
 
-// The unit circle, ctx=NULL.
+// iv2d_circle is a sample region, a circle centered at x,y with radius r.
+//
+//   The typical equation for the boundary of a circle looks like
+//         (X - c.x)^2 + (Y - c.y)^2 == c.r^2
+//
+//   and the area inside that circle is described by the inequality
+//         (X - c.x)^2 + (Y - c.y)^2 <= c.r^2
+//
+//   so iv2d_circle() returns the value
+//         (X - c.x)^2 + (Y - c.y)^2 -  c.r^2
+struct iv2d_circle { float x,y,r; };
 iv2d_region iv2d_circle;
-
-struct iv2d_affine {
-    float sx,kx,tx,
-          ky,sy,ty;
-};
-_Bool iv2d_invert(struct iv2d_affine m, struct iv2d_affine *inv);
-
-struct iv2d_transform {
-    struct iv2d_affine m;
-    iv2d_region       *region;
-    void const        *ctx;
-};
-iv2d_region iv2d_transform;
 
 struct iv2d_binop {
     iv2d_region *a; void const *actx;
