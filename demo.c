@@ -5,6 +5,7 @@
 #include <SDL3/SDL_main.h>
 #include <math.h>
 
+#define check(x) if (!(x)) dprintf(2,"%s:%d check(%s)\n", __FILE__,__LINE__,#x), __builtin_trap()
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
 
 static void write_to_stdout(void *ctx, void *buf, int len) {
@@ -150,14 +151,26 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
-                cy = 0.5f * (float)h;
+                cy = 0.5f * (float)h,
+                cr = 0.5f * fminf(cx,cy);
 
-    struct iv2d_circle const centered = {cx,cy, 0.5f*fminf(cx,cy)},
-                                fixed = {300,200,100};
+    struct iv2d_affine const centered = {
+        cr,0,cx,
+        0,cr,cy,
+    };
+    struct iv2d_affine const fixed = {
+        100,0,300,
+        0,100,200,
+    };
+
+    struct iv2d_transform centered_circle = {.region=iv2d_circle},
+                             fixed_circle = {.region=iv2d_circle};
+    check(iv2d_invert(centered, &centered_circle.m));
+    check(iv2d_invert(   fixed, &   fixed_circle.m));
 
     struct iv2d_binop const scene = {
-        iv2d_circle, &centered,
-        iv2d_circle, &fixed,
+        iv2d_transform, &centered_circle,
+        iv2d_transform, &   fixed_circle,
     };
 
     struct {
