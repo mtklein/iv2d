@@ -3,8 +3,13 @@
 typedef float __attribute__((vector_size(16))) float4;
 typedef   int __attribute__((vector_size(16)))   int4;
 
+static inline float4 if_then_else(int4 mask, float4 t, float4 e) {
+    return (float4)( ( mask & (int4)t)
+                   | (~mask & (int4)e) );
+}
+
 static inline float4 when(int4 mask, float4 v) {
-    return (float4)( mask & (int4)v );
+    return if_then_else(mask, v, (float4){0});
 }
 
 typedef struct {
