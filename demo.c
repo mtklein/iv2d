@@ -13,9 +13,12 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 }
 
 // TODO
-//   - add a recurse-into-9-sub-parts coverage strategy
-//   - add a scanlines coverage strategy
+//   - add a recurse-into-9-sub-parts coverage strategy?
+//   - add a scanlines coverage strategy?
 //   - cover with other shapes?  triangles, quads?
+//   - try using stbtt_FlattenCurves() to make some piecewise capsules
+//   - better API for iv2d_region,ctx, allocation, combining, etc.
+//     this is very hard to work with
 
 struct quad {
     struct { float x,y; SDL_FColor c; } vertex[6];
