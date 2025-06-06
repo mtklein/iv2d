@@ -29,17 +29,31 @@ struct app {
     SDL_Renderer *renderer;
     struct quad  *quad;
     int           quads, quad_cap, full;
-    int           quality, slide;
-    bool          draw_bounds, write_png, paddingA[2];
 
-    uint64_t frametime[32];
-    int      frametimes, paddingB;
+    int quality, slide;
+    int draw_bounds :  1;
+    int write_png   :  1;
+    int animate     :  1;
+    int paddingA    : 29;
+
+    double frametime[32];
+    int    next_frametime, paddingB;
+
+    double time,start_time;
 };
 
 static void reset_frametimes(struct app *app) {
     for (int i = 0; i < len(app->frametime); i++) {
         app->frametime[i] = 0;
     }
+}
+
+static double now(void) {
+    static double to_sec = 0;
+    if (to_sec <= 0) {
+        to_sec = 1 / (double)(uint64_t)SDL_GetPerformanceFrequency();
+    }
+    return (double)(uint64_t)SDL_GetPerformanceCounter() * to_sec;
 }
 
 static _Bool handle_keys(struct app *app, char const *key) {
@@ -58,6 +72,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case '[': app->slide--; break;
             case ']': app->slide++; break;
 
+            case 'a': app->animate     ^= 1; break;
             case 'b': app->draw_bounds ^= 1; break;
             case 'p': app->write_png   ^= 1; break;
         }
@@ -82,6 +97,7 @@ static void queue_rect(void *arg, float l, float t, float r, float b, float cov)
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     struct app *app = *ctx = SDL_calloc(1, sizeof *app);
+    app->start_time = now();
 
     int w=800, h=600;
     for (int i = 1; i < argc; i++) {
@@ -105,6 +121,7 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
         }
         SDL_SetWindowPosition(app->window, 0,0);
     }
+    SDL_SetRenderVSync(app->renderer, 1);
     return SDL_APP_CONTINUE;
 }
 
@@ -144,6 +161,9 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
 SDL_AppResult SDL_AppIterate(void *ctx) {
     struct app *app = ctx;
     app->quads = app->full = 0;
+    if (app->animate) {
+        app->time = now() - app->start_time;
+    }
 
     SDL_SetRenderDrawBlendMode (app->renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColorFloat(app->renderer, 1,1,1,1);
@@ -155,16 +175,24 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h;
 
-    struct iv2d_circle const centered = {cx,cy, 0.5f*fminf(cx,cy)},
-                                fixed = {300,200,100};
+    struct iv2d_circle const centered = {cx,cy, 0.5f*fminf(cx,cy)};
+
+    struct iv2d_circle orbit = {0,0,100};
+    {
+        float const x = 300-cx,
+                    y = 200-cy,
+                   th = (float)app->time;
+        orbit.x = x*cosf(th) - y*sinf(th) + cx;
+        orbit.y = y*cosf(th) + x*sinf(th) + cy;
+    }
 
     struct iv2d_binop const binop = {
         iv2d_circle, &centered,
-        iv2d_circle, &fixed,
+        iv2d_circle, &orbit,
     };
 
     struct iv2d_capsule const capsule = {
-        300,200, cx,cy, 4,
+        orbit.x,orbit.y, cx,cy, 4,
     };
 
     struct {
@@ -172,30 +200,30 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         void const  *ctx;
         char const  *name;
     } slides[] = {
-        {iv2d_union       , &binop, "union"       },
-        {iv2d_intersection, &binop, "intersection"},
-        {iv2d_difference  , &binop, "difference"  },
-        {iv2d_capsule, &capsule, "capsule"},
+        {iv2d_union       , &binop  , "union"       },
+        {iv2d_intersection, &binop  , "intersection"},
+        {iv2d_difference  , &binop  , "difference"  },
+        {iv2d_capsule     , &capsule, "capsule"     },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
     if (slide > len(slides)-1) { slide = len(slides)-1; }
 
-    uint64_t const start = SDL_GetPerformanceCounter();
+    double const start = now();
     {
         iv2d_cover(slides[slide].region, slides[slide].ctx, 0,0,w,h, app->quality, queue_rect,app);
     }
-    app->frametime[app->frametimes++ % len(app->frametime)] = SDL_GetPerformanceCounter() - start;
+    app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
 
-    uint64_t avg_frametime;
+    double avg_frametime;
     {
-        uint64_t sum = 0;
-        int  nonzero = 0;
+        double  sum = 0;
+        int nonzero = 0;
         for (int i = 0; i < len(app->frametime); i++) {
             sum     += app->frametime[i];
             nonzero += app->frametime[i] > 0;
         }
-        avg_frametime = sum / (unsigned)nonzero;
+        avg_frametime = sum / (double)nonzero;
     }
 
     SDL_RenderGeometryRaw(app->renderer, NULL
@@ -223,9 +251,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
-            "%s (%d), %dx%d, quality %d, %d full + %d partial, %lluµs",
+            "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0fµs",
             slides[slide].name, slide, w,h, app->quality, app->full, app->quads - app->full,
-            app->write_png ? 0 : 1000000 * avg_frametime / SDL_GetPerformanceFrequency());
+            app->write_png ? 0 : 1e6 * avg_frametime);
 
     if (app->write_png) {
         SDL_Surface *surf = SDL_RenderReadPixels(app->renderer, NULL),
