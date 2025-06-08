@@ -96,6 +96,16 @@ static void queue_rect(void *arg, float l, float t, float r, float b, float cov)
     }};
 }
 
+static struct iv2d_halfplane halfplane_from(float x0, float y0, float x1, float y1) {
+    float const dx = x1 - x0,
+                dy = y1 - y0,
+              norm = 1 / sqrtf(dx*dx + dy*dy),
+                nx = +dy*norm,
+                ny = -dx*norm,
+                 d = nx*x0 + ny*y0;
+    return (struct iv2d_halfplane){.region={iv2d_halfplane}, nx,ny,d};
+}
+
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     struct app *app = *ctx = SDL_calloc(1, sizeof *app);
     app->start_time = now();
@@ -194,9 +204,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_capsule capsule = {.region={iv2d_capsule}, ox,oy, cx,cy, 4};
 
-    struct iv2d_halfplane halfplane = {.region={iv2d_halfplane}, cosf(th),sinf(th),40};
-    struct iv2d_affine    transform = {.region={iv2d_affine}, &halfplane.region, 1,0,-cx
-                                                                               , 0,1,-cy};
+    struct iv2d_halfplane halfplane = halfplane_from(ox,oy, cx,cy);
 
     struct {
         struct iv2d_region const *region;
@@ -206,7 +214,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&intersect .region, "intersect" },
         {&difference.region, "difference"},
         {&capsule   .region, "capsule"   },
-        {&transform .region, "halfplane" },
+        {&halfplane .region, "halfplane" },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
