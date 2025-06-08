@@ -194,6 +194,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_capsule capsule = {.region={iv2d_capsule}, ox,oy, cx,cy, 4};
 
+    struct iv2d_halfplane halfplane = {.region={iv2d_halfplane}, cosf(th),sinf(th),40};
+    struct iv2d_affine    transform = {.region={iv2d_affine}, &halfplane.region, 1,0,-cx
+                                                                               , 0,1,-cy};
+
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -202,6 +206,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&intersect .region, "intersect" },
         {&difference.region, "difference"},
         {&capsule   .region, "capsule"   },
+        {&transform .region, "halfplane" },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }

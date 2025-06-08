@@ -57,3 +57,16 @@ iv iv2d_stroke(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_stroke const *stroke = (struct iv2d_stroke const*)region;
     return iv_sub(iv_abs(stroke->arg->eval(stroke->arg, x,y)), as_iv(stroke->width));
 }
+
+iv iv2d_halfplane(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_halfplane const *hp = (struct iv2d_halfplane const*)region;
+    return iv_sub(iv_add(iv_mul(x, as_iv(hp->nx)),
+                         iv_mul(y, as_iv(hp->ny))),
+                  as_iv(hp->d));
+}
+
+iv iv2d_affine(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_affine const *m = (struct iv2d_affine const*)region;
+    return m->arg->eval(m->arg, iv_mad(x, as_iv(m->sx), iv_mad(y, as_iv(m->kx), as_iv(m->tx)))
+                              , iv_mad(x, as_iv(m->ky), iv_mad(y, as_iv(m->sy), as_iv(m->ty))));
+}

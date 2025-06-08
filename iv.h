@@ -45,6 +45,10 @@ static inline iv iv_mul(iv x, iv y) {
     };
 }
 
+static inline iv iv_mad(iv x, iv y, iv z) {
+    return iv_add(iv_mul(x,y), z);
+}
+
 static inline iv iv_min(iv x, iv y) {
     return (iv){
         __builtin_elementwise_min(x.lo, y.lo),
