@@ -95,6 +95,32 @@ static void test_square(void) {
     }
 }
 
+static void test_abs(void) {
+    {
+        iv z = iv_abs((iv){{3,-3,-5},{4,4,-1}});
+        expect(equiv(z.lo[0], 3));
+        expect(equiv(z.hi[0], 4));
+
+        expect(equiv(z.lo[1], 0));
+        expect(equiv(z.hi[1], 4));
+
+        expect(equiv(z.lo[2], 1));
+        expect(equiv(z.hi[2], 5));
+    }
+
+    {
+        iv z = iv_abs((iv){{0,-2,0},{4,0,0}});
+        expect(equiv(z.lo[0], 0));
+        expect(equiv(z.hi[0], 4));
+
+        expect(equiv(z.lo[1], 0));
+        expect(equiv(z.hi[1], 2));
+
+        expect(equiv(z.lo[2], 0));
+        expect(equiv(z.hi[2], 0));
+    }
+}
+
 int main(void) {
     test_add();
     test_sub();
@@ -103,5 +129,6 @@ int main(void) {
     test_max();
     test_sqrt();
     test_square();
+    test_abs();
     return 0;
 }

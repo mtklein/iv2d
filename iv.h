@@ -78,3 +78,12 @@ static inline iv iv_square(iv x) {
                                   __builtin_elementwise_max(a2,b2) ,
     };
 }
+
+static inline iv iv_abs(iv x) {
+    float4 const a = __builtin_elementwise_abs(x.lo),
+                 b = __builtin_elementwise_abs(x.hi);
+    return (iv){
+        when(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a,b)),
+                                  __builtin_elementwise_max(a,b) ,
+    };
+}
