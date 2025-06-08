@@ -22,14 +22,15 @@ build out/iv_test.o:  compile  iv_test.c
 build out/iv_test:    link out/iv_test.o
 build out/iv_test.ok: run  out/iv_test
 
-build out/iv2d.o: compile iv2d.c
+build out/iv2d.o:         compile iv2d.c
+build out/iv2d_regions.o: compile iv2d_regions.c
 
 build out/stb_image_write.o: compile stb_image_write.c
     flags = -w
 
 build out/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
-build out/demo: link out/demo.o out/iv2d.o out/stb_image_write.o
+build out/demo: link out/demo.o out/iv2d.o out/iv2d_regions.o out/stb_image_write.o
     flags = -L/opt/homebrew/lib -lSDL3
 
 build gold/slim_difference-0.png: run out/demo

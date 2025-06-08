@@ -1,5 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "iv2d.h"
+#include "iv2d_regions.h"
 #include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -17,8 +18,6 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 //   - add a scanlines coverage strategy?
 //   - cover with other shapes?  triangles, quads?
 //   - try using stbtt_FlattenCurves() to make some piecewise capsules
-//   - better API for iv2d_region,ctx, allocation, combining, etc.
-//     this is very hard to work with
 
 struct quad {
     struct { float x,y; SDL_FColor c; } vertex[6];
@@ -173,37 +172,29 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
-                cy = 0.5f * (float)h;
+                cy = 0.5f * (float)h,
+                th = (float)app->time,
+                ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
+                oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
-    struct iv2d_circle const centered = {cx,cy, 0.5f*fminf(cx,cy)};
+    struct iv2d_region *center = iv2d_circle(cx,cy, 0.5f*fminf(cx,cy)),
+                       *orbit  = iv2d_circle(ox,oy, 100),
+                       *invorb = iv2d_invert(orbit);
 
-    struct iv2d_circle orbit = {0,0,100};
-    {
-        float const x = 300-cx,
-                    y = 200-cy,
-                   th = (float)app->time;
-        orbit.x = x*cosf(th) - y*sinf(th) + cx;
-        orbit.y = y*cosf(th) + x*sinf(th) + cy;
-    }
+    struct iv2d_region *union_ = iv2d_union    ((struct iv2d_region const*[]){center,  orbit}, 2),
+                 *intersection = iv2d_intersect((struct iv2d_region const*[]){center,  orbit}, 2),
+                   *difference = iv2d_intersect((struct iv2d_region const*[]){center, invorb}, 2);
 
-    struct iv2d_binop const binop = {
-        iv2d_circle, &centered,
-        iv2d_circle, &orbit,
-    };
-
-    struct iv2d_capsule const capsule = {
-        orbit.x,orbit.y, cx,cy, 4,
-    };
+    struct iv2d_region *capsule = iv2d_capsule(ox,oy, cx,cy, 4);
 
     struct {
-        iv2d_region *region;
-        void const  *ctx;
-        char const  *name;
+        struct iv2d_region const *region;
+        char const               *name;
     } slides[] = {
-        {iv2d_union       , &binop  , "union"       },
-        {iv2d_intersection, &binop  , "intersection"},
-        {iv2d_difference  , &binop  , "difference"  },
-        {iv2d_capsule     , &capsule, "capsule"     },
+        {union_      , "union"       },
+        {intersection, "intersection"},
+        {difference  , "difference"  },
+        {capsule     , "capsule"     },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
@@ -211,9 +202,17 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     double const start = now();
     {
-        iv2d_cover(slides[slide].region, slides[slide].ctx, 0,0,w,h, app->quality, queue_rect,app);
+        iv2d_cover(slides[slide].region, 0,0,w,h, app->quality, queue_rect,app);
     }
     app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
+
+    free(center);
+    free(orbit);
+    free(invorb);
+    free(union_);
+    free(intersection);
+    free(difference);
+    free(capsule);
 
     double avg_frametime;
     {
