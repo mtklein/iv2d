@@ -38,6 +38,8 @@ build gold/slim_difference-1.png: run out/demo
     args = p ]] 600x402 +
 build gold/slim_difference-3.png: run out/demo
     args = p ]] 600x402 +++
+build gold/slim_difference-5.png: run out/demo
+    args = p ]] 600x402 +++++
 
 build gold/fat_difference-0.png: run out/demo
     args = p ]] 800x600
@@ -45,6 +47,8 @@ build gold/fat_difference-1.png: run out/demo
     args = p ]] 800x600 +
 build gold/fat_difference-3.png: run out/demo
     args = p ]] 800x600 +++
+build gold/fat_difference-5.png: run out/demo
+    args = p ]] 800x600 +++++
 
 build gold/capsule-0.png: run out/demo
     args = p ]]] 800x600
@@ -52,3 +56,5 @@ build gold/capsule-1.png: run out/demo
     args = p ]]] 800x600 +
 build gold/capsule-3.png: run out/demo
     args = p ]]] 800x600 +++
+build gold/capsule-5.png: run out/demo
+    args = p ]]] 800x600 +++++
