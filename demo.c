@@ -135,7 +135,10 @@ SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
 
     int w=800, h=600;
     for (int i = 1; i < argc; i++) {
-        if (2 == sscanf(argv[i], "%dx%d", &w, &h)) {
+        int W,H;
+        if (2 == sscanf(argv[i], "%dx%d", &W, &H)) {
+            w = W;
+            h = H;
             continue;
         }
         if (handle_keys(app, argv[i])) {
