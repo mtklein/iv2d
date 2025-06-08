@@ -8,6 +8,10 @@
 
 #define len(x) (int)( sizeof(x) / sizeof(x[0]) )
 
+static int wrap(int x, int n) {
+    return ((x % n) + n) % n;
+}
+
 static void write_to_stdout(void *ctx, void *buf, int len) {
     (void)ctx;
     fwrite(buf, 1, (size_t)len, stdout);
@@ -57,15 +61,15 @@ static double now(void) {
 }
 
 static _Bool handle_keys(struct app *app, char const *key) {
-    while (*key) {
-        switch (*key++) {
+    for (; *key; key++) {
+        switch (*key) {
             default: break;
 
             case 'q':
             case SDLK_RETURN:
             case SDLK_ESCAPE: return true;
 
-            case '-': app->quality--; break;
+            case '-': if (--app->quality < 0) app->quality=0; break;
             case '+':
             case '=': app->quality++; break;
 
@@ -76,6 +80,17 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case 'b': app->draw_bounds ^= 1; break;
             case 'p': app->write_png   ^= 1; break;
             case 's': app->stroke      ^= 1; break;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': app->slide = *key-'0'; break;
         }
     }
     return false;
@@ -203,7 +218,6 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_region const *center_orbit [] = {&center.region, & orbit.region},
                              *center_invorb[] = {&center.region, &invorb.region};
-
     struct iv2d_setop const
         union_     = {.region={iv2d_union    }, center_orbit , len(center_orbit )},
         intersect  = {.region={iv2d_intersect}, center_orbit , len(center_orbit )},
@@ -213,25 +227,18 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_halfplane halfplane = halfplane_from(ox,oy, cx,cy);
 
-    struct iv2d_halfplane hp[4] = {
-        halfplane_from(cx,cy, cx,oy),
-        halfplane_from(cx,oy, ox,oy),
-        halfplane_from(ox,oy, ox,cy),
-        halfplane_from(ox,cy, cx,cy),
-    };
-    struct iv2d_region const *quad_region[len(hp)];
-    struct iv2d_setop quad = intersect_halfplanes(hp, len(hp), quad_region);
-
-    struct iv2d_halfplane penta[5];
-    for (int i = 0; i < 5; i++) {
-        float const x0 = cx + 100 * cosf(th + (float)(i  ) * 2*(float)M_PI/5),
-                    y0 = cy + 100 * sinf(th + (float)(i  ) * 2*(float)M_PI/5),
-                    x1 = cx + 100 * cosf(th + (float)(i+1) * 2*(float)M_PI/5),
-                    y1 = cy + 100 * sinf(th + (float)(i+1) * 2*(float)M_PI/5);
-        penta[i] = halfplane_from(x0,y0, x1,y1);
+    struct iv2d_halfplane hp[7];
+    for (int i = 0; i < len(hp); i++) {
+        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*M_PI/len(hp)),
+                               cy + 100 * (float)sin(app->time + (i  ) * 2*M_PI/len(hp)),
+                               cx + 100 * (float)cos(app->time + (i+1) * 2*M_PI/len(hp)),
+                               cy + 100 * (float)sin(app->time + (i+1) * 2*M_PI/len(hp)));
     }
-    struct iv2d_region const *penta_region[len(penta)];
-    struct iv2d_setop pentagon = intersect_halfplanes(penta, len(penta), penta_region);
+    struct iv2d_region const *ngon_region[len(hp)];
+    struct iv2d_setop ngon = intersect_halfplanes(hp, len(hp), ngon_region);
+
+    char ngon_name[128];
+    snprintf(ngon_name, sizeof ngon_name, "%d-gon", len(hp));
 
     struct {
         struct iv2d_region const *region;
@@ -242,12 +249,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&difference.region, "difference"},
         {&capsule   .region, "capsule"   },
         {&halfplane .region, "halfplane" },
-        {&quad      .region, "quad"      },
-        {&pentagon  .region, "pentagon"  },
+        {&ngon      .region,  ngon_name  },
     };
-    int slide = app->slide;
-    if (slide <             0) { slide =             0; }
-    if (slide > len(slides)-1) { slide = len(slides)-1; }
+    int const slide = wrap(app->slide, len(slides));
 
     struct iv2d_region const *region = slides[slide].region;
 

@@ -1,8 +1,5 @@
 #include "iv2d_regions.h"
 
-// TODO: think of some nice way factor that allow fudging the SDF for fast fills
-// (e.g. x^2+y^2-r^2) while still doing the proper sqrt(x^2+y^2)-r when stroking.
-
 iv iv2d_circle(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_circle const *c = (struct iv2d_circle const*)region;
     return iv_sub(iv_sqrt(iv_add(iv_square(iv_sub(x, as_iv(c->x))),
@@ -38,7 +35,6 @@ iv iv2d_union(struct iv2d_region const *region, iv x, iv y) {
     }
     return v;
 }
-
 iv iv2d_intersect(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_setop const *c = (struct iv2d_setop const*)region;
     iv v = as_iv(-1.0f/0);
@@ -55,7 +51,8 @@ iv iv2d_invert(struct iv2d_region const *region, iv x, iv y) {
 
 iv iv2d_stroke(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_stroke const *stroke = (struct iv2d_stroke const*)region;
-    return iv_sub(iv_abs(stroke->arg->eval(stroke->arg, x,y)), as_iv(stroke->width));
+    return iv_sub(iv_abs(stroke->arg->eval(stroke->arg, x,y)),
+                  as_iv(stroke->width));
 }
 
 iv iv2d_halfplane(struct iv2d_region const *region, iv x, iv y) {

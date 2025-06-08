@@ -31,12 +31,12 @@ iv iv2d_invert(struct iv2d_region const*, iv x, iv y);
 struct iv2d_stroke {
     struct iv2d_region        region;
     struct iv2d_region const *arg;
-    float                     width,padding;
+    float                     width, padding;
 };
 iv iv2d_stroke(struct iv2d_region const*, iv x, iv y);
 
 struct iv2d_halfplane {
     struct iv2d_region region;
-    float              nx,ny,d,padding;
+    float              nx,ny,d, padding;
 };
 iv iv2d_halfplane(struct iv2d_region const*, iv x, iv y);

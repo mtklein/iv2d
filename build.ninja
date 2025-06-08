@@ -33,28 +33,28 @@ build out/demo: link out/demo.o out/iv2d.o out/iv2d_regions.o out/stb_image_writ
     flags = -L/opt/homebrew/lib -lSDL3
 
 build gold/slim_difference-0.png: run out/demo
-    args = p ]] 600x402
+    args = p 2 600x402
 build gold/slim_difference-1.png: run out/demo
-    args = p ]] 600x402 +
+    args = p 2 600x402 +
 build gold/slim_difference-3.png: run out/demo
-    args = p ]] 600x402 +++
+    args = p 2 600x402 +++
 build gold/slim_difference-5.png: run out/demo
-    args = p ]] 600x402 +++++
+    args = p 2 600x402 +++++
 
 build gold/fat_difference-0.png: run out/demo
-    args = p ]] 800x600
+    args = p 2 800x600
 build gold/fat_difference-1.png: run out/demo
-    args = p ]] 800x600 +
+    args = p 2 800x600 +
 build gold/fat_difference-3.png: run out/demo
-    args = p ]] 800x600 +++
+    args = p 2 800x600 +++
 build gold/fat_difference-5.png: run out/demo
-    args = p ]] 800x600 +++++
+    args = p 2 800x600 +++++
 
 build gold/capsule-0.png: run out/demo
-    args = p ]]] 800x600
+    args = p 3 800x600
 build gold/capsule-1.png: run out/demo
-    args = p ]]] 800x600 +
+    args = p 3 800x600 +
 build gold/capsule-3.png: run out/demo
-    args = p ]]] 800x600 +++
+    args = p 3 800x600 +++
 build gold/capsule-5.png: run out/demo
-    args = p ]]] 800x600 +++++
+    args = p 3 800x600 +++++
