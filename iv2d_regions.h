@@ -14,18 +14,12 @@ struct iv2d_capsule {
 };
 iv iv2d_capsule(struct iv2d_region const*, iv x, iv y);
 
-struct iv2d_union {
+struct iv2d_setop {
     struct iv2d_region         region;
     struct iv2d_region const **subregion;
     int                        subregions, padding;
 };
-iv iv2d_union(struct iv2d_region const*, iv x, iv y);
-
-struct iv2d_intersect {
-    struct iv2d_region         region;
-    struct iv2d_region const **subregion;
-    int                        subregions, padding;
-};
+iv iv2d_union    (struct iv2d_region const*, iv x, iv y);
 iv iv2d_intersect(struct iv2d_region const*, iv x, iv y);
 
 struct iv2d_invert {

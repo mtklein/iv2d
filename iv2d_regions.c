@@ -31,7 +31,7 @@ iv iv2d_capsule(struct iv2d_region const *region, iv x, iv y) {
 }
 
 iv iv2d_union(struct iv2d_region const *region, iv x, iv y) {
-    struct iv2d_union const *c = (struct iv2d_union const*)region;
+    struct iv2d_setop const *c = (struct iv2d_setop const*)region;
     iv v = as_iv(+1.0f/0);
     for (int i = 0; i < c->subregions; i++) {
         v = iv_min(v, c->subregion[i]->eval(c->subregion[i], x,y));
@@ -40,7 +40,7 @@ iv iv2d_union(struct iv2d_region const *region, iv x, iv y) {
 }
 
 iv iv2d_intersect(struct iv2d_region const *region, iv x, iv y) {
-    struct iv2d_intersect const *c = (struct iv2d_intersect const*)region;
+    struct iv2d_setop const *c = (struct iv2d_setop const*)region;
     iv v = as_iv(-1.0f/0);
     for (int i = 0; i < c->subregions; i++) {
         v = iv_max(v, c->subregion[i]->eval(c->subregion[i], x,y));
