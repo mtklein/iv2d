@@ -33,7 +33,8 @@ struct app {
     int draw_bounds :  1;
     int write_png   :  1;
     int animate     :  1;
-    int paddingA    : 29;
+    int stroke      :  1;
+    int paddingA    : 28;
 
     double frametime[32];
     int    next_frametime, paddingB;
@@ -74,6 +75,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case 'a': app->animate     ^= 1; break;
             case 'b': app->draw_bounds ^= 1; break;
             case 'p': app->write_png   ^= 1; break;
+            case 's': app->stroke      ^= 1; break;
         }
     }
     return false;
@@ -205,9 +207,16 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     if (slide <             0) { slide =             0; }
     if (slide > len(slides)-1) { slide = len(slides)-1; }
 
+    struct iv2d_region const *region = slides[slide].region;
+
+    struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
+    if (app->stroke) {
+        region = &stroke.region;
+    }
+
     double const start = now();
     {
-        iv2d_cover(slides[slide].region, 0,0,w,h, app->quality, queue_rect,app);
+        iv2d_cover(region, 0,0,w,h, app->quality, queue_rect,app);
     }
     app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
 

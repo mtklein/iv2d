@@ -33,3 +33,10 @@ struct iv2d_invert {
     struct iv2d_region const *arg;
 };
 iv iv2d_invert(struct iv2d_region const*, iv x, iv y);
+
+struct iv2d_stroke {
+    struct iv2d_region        region;
+    struct iv2d_region const *arg;
+    float                     r,padding;
+};
+iv iv2d_stroke(struct iv2d_region const*, iv x, iv y);

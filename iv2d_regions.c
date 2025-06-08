@@ -49,3 +49,8 @@ iv iv2d_invert(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_invert const *c = (struct iv2d_invert const*)region;
     return iv_sub(as_iv(0), c->arg->eval(c->arg, x,y));
 }
+
+iv iv2d_stroke(struct iv2d_region const *region, iv x, iv y) {
+    struct iv2d_stroke const *c = (struct iv2d_stroke const*)region;
+    return iv_sub(iv_abs(c->arg->eval(c->arg, x,y)), as_iv(c->r));
+}
