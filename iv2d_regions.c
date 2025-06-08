@@ -1,10 +1,13 @@
 #include "iv2d_regions.h"
 
+// TODO: think of some nice way factor that allow fudging the SDF for fast fills
+// (e.g. x^2+y^2-r^2) while still doing the proper sqrt(x^2+y^2)-r when stroking.
+
 iv iv2d_circle(struct iv2d_region const *region, iv x, iv y) {
     struct iv2d_circle const *c = (struct iv2d_circle const*)region;
-    return iv_sub(iv_add(iv_square(iv_sub(x, as_iv(c->x))),
-                         iv_square(iv_sub(y, as_iv(c->y)))),
-                  as_iv(c->r * c->r));
+    return iv_sub(iv_sqrt(iv_add(iv_square(iv_sub(x, as_iv(c->x))),
+                                 iv_square(iv_sub(y, as_iv(c->y))))),
+                  as_iv(c->r));
 }
 
 iv iv2d_capsule(struct iv2d_region const *region, iv x, iv y) {
@@ -22,9 +25,9 @@ iv iv2d_capsule(struct iv2d_region const *region, iv x, iv y) {
 
     iv const h = iv_max(as_iv(0), iv_min(t, as_iv(1)));
 
-    return iv_sub(iv_add(iv_square(iv_sub(px, iv_mul(h, as_iv(dx)))),
-                         iv_square(iv_sub(py, iv_mul(h, as_iv(dy))))),
-                  as_iv(c->r * c->r));
+    return iv_sub(iv_sqrt(iv_add(iv_square(iv_sub(px, iv_mul(h, as_iv(dx)))),
+                                 iv_square(iv_sub(py, iv_mul(h, as_iv(dy)))))),
+                  as_iv(c->r));
 }
 
 iv iv2d_union(struct iv2d_region const *region, iv x, iv y) {
@@ -51,6 +54,6 @@ iv iv2d_invert(struct iv2d_region const *region, iv x, iv y) {
 }
 
 iv iv2d_stroke(struct iv2d_region const *region, iv x, iv y) {
-    struct iv2d_stroke const *c = (struct iv2d_stroke const*)region;
-    return iv_sub(iv_abs(c->arg->eval(c->arg, x,y)), as_iv(c->r));
+    struct iv2d_stroke const *stroke = (struct iv2d_stroke const*)region;
+    return iv_sub(iv_abs(stroke->arg->eval(stroke->arg, x,y)), as_iv(stroke->width));
 }
