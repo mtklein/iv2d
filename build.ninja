@@ -58,3 +58,12 @@ build gold/capsule-3.png: run out/demo
     args = p 3 800x600 +++
 build gold/capsule-5.png: run out/demo
     args = p 3 800x600 +++++
+
+build gold/stroke-ngon-0.png: run out/demo
+    args = p 5s 800x600
+build gold/stroke-ngon-1.png: run out/demo
+    args = p 5s 800x600 +
+build gold/stroke-ngon-3.png: run out/demo
+    args = p 5s 800x600 +++
+build gold/stroke-ngon-5.png: run out/demo
+    args = p 5s 800x600 +++++
