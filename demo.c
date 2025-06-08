@@ -1,12 +1,11 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "iv2d.h"
 #include "iv2d_regions.h"
+#include "len.h"
 #include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
-
-#define len(x) (int)( sizeof(x) / sizeof(x[0]) )
 
 static int wrap(int x, int n) {
     return ((x % n) + n) % n;

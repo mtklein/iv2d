@@ -1,13 +1,5 @@
 #include "iv.h"
-#include <stdio.h>
-
-#define expect(x) if (!(x)) dprintf(2, "%s:%d %s expect(%s)\n", __FILE__, __LINE__, __func__, #x), \
-                            __builtin_debugtrap()
-
-static _Bool equiv(float x, float y) {
-    return (x <= y && y <= x)
-        || (x != x && y != y);
-}
+#include "test.h"
 
 static void test_add(void) {
     iv z = iv_add((iv){{3},{4}}, (iv){{5},{6}});
