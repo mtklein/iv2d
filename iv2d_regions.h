@@ -40,11 +40,3 @@ struct iv2d_halfplane {
     float              nx,ny,d,padding;
 };
 iv iv2d_halfplane(struct iv2d_region const*, iv x, iv y);
-
-struct iv2d_affine {
-    struct iv2d_region        region;
-    struct iv2d_region const *arg;
-    float                     sx,kx,tx,
-                              ky,sy,ty;
-};
-iv iv2d_affine(struct iv2d_region const*, iv x, iv y);

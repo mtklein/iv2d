@@ -64,9 +64,3 @@ iv iv2d_halfplane(struct iv2d_region const *region, iv x, iv y) {
                          iv_mul(y, as_iv(hp->ny))),
                   as_iv(hp->d));
 }
-
-iv iv2d_affine(struct iv2d_region const *region, iv x, iv y) {
-    struct iv2d_affine const *m = (struct iv2d_affine const*)region;
-    return m->arg->eval(m->arg, iv_mad(x, as_iv(m->sx), iv_mad(y, as_iv(m->kx), as_iv(m->tx)))
-                              , iv_mad(x, as_iv(m->ky), iv_mad(y, as_iv(m->sy), as_iv(m->ty))));
-}

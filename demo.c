@@ -224,16 +224,14 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_halfplane penta[5];
     for (int i = 0; i < 5; i++) {
-        float const x0 = 100 * cosf(th + (float)(i  ) * 2*(float)M_PI/5),
-                    y0 = 100 * sinf(th + (float)(i  ) * 2*(float)M_PI/5),
-                    x1 = 100 * cosf(th + (float)(i+1) * 2*(float)M_PI/5),
-                    y1 = 100 * sinf(th + (float)(i+1) * 2*(float)M_PI/5);
+        float const x0 = cx + 100 * cosf(th + (float)(i  ) * 2*(float)M_PI/5),
+                    y0 = cy + 100 * sinf(th + (float)(i  ) * 2*(float)M_PI/5),
+                    x1 = cx + 100 * cosf(th + (float)(i+1) * 2*(float)M_PI/5),
+                    y1 = cy + 100 * sinf(th + (float)(i+1) * 2*(float)M_PI/5);
         penta[i] = halfplane_from(x0,y0, x1,y1);
     }
     struct iv2d_region const *penta_region[len(penta)];
     struct iv2d_setop pentagon = intersect_halfplanes(penta, len(penta), penta_region);
-    struct iv2d_affine translated = {.region={iv2d_affine}, &pentagon.region, 1,0,-cx
-                                                                            , 0,1,-cy};
 
     struct {
         struct iv2d_region const *region;
@@ -245,7 +243,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&capsule   .region, "capsule"   },
         {&halfplane .region, "halfplane" },
         {&quad      .region, "quad"      },
-        {&translated.region, "pentagon"  },
+        {&pentagon  .region, "pentagon"  },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
