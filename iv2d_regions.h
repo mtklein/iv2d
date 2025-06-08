@@ -2,13 +2,34 @@
 
 #include "iv2d.h"
 
-// All iv2d_regions from this file can be cleaned up with free(),
-// and none take ownership of their iv2d_region arguments.
+struct iv2d_circle {
+    struct iv2d_region region;
+    float              x,y,r, padding;
+};
+iv iv2d_circle(struct iv2d_region const*, iv x, iv y);
 
-struct iv2d_region* iv2d_circle(float x, float y, float r);
-struct iv2d_region* iv2d_capsule(float x0, float y0, float x1, float y1, float r);
+struct iv2d_capsule {
+    struct iv2d_region region;
+    float              x0,y0,x1,y1,r, padding;
+};
+iv iv2d_capsule(struct iv2d_region const*, iv x, iv y);
 
-struct iv2d_region* iv2d_union    (struct iv2d_region const *subregion[], int subregions);
-struct iv2d_region* iv2d_intersect(struct iv2d_region const *subregion[], int subregions);
+struct iv2d_union {
+    struct iv2d_region         region;
+    struct iv2d_region const **subregion;
+    int                        subregions, padding;
+};
+iv iv2d_union(struct iv2d_region const*, iv x, iv y);
 
-struct iv2d_region* iv2d_invert(struct iv2d_region const*);
+struct iv2d_intersect {
+    struct iv2d_region         region;
+    struct iv2d_region const **subregion;
+    int                        subregions, padding;
+};
+iv iv2d_intersect(struct iv2d_region const*, iv x, iv y);
+
+struct iv2d_invert {
+    struct iv2d_region        region;
+    struct iv2d_region const *arg;
+};
+iv iv2d_invert(struct iv2d_region const*, iv x, iv y);

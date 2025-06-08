@@ -177,24 +177,29 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                 ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
                 oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
-    struct iv2d_region *center = iv2d_circle(cx,cy, 0.5f*fminf(cx,cy)),
-                       *orbit  = iv2d_circle(ox,oy, 100),
-                       *invorb = iv2d_invert(orbit);
+    struct iv2d_circle const center = {.region={iv2d_circle}, cx, cy, 0.5f*fminf(cx,cy)},
+                             orbit  = {.region={iv2d_circle}, ox, oy, 100};
+    struct iv2d_invert const invorb = {.region={iv2d_invert}, &orbit.region};
 
-    struct iv2d_region *union_ = iv2d_union    ((struct iv2d_region const*[]){center,  orbit}, 2),
-                 *intersection = iv2d_intersect((struct iv2d_region const*[]){center,  orbit}, 2),
-                   *difference = iv2d_intersect((struct iv2d_region const*[]){center, invorb}, 2);
+    struct iv2d_region const *center_orbit [] = {&center.region, & orbit.region},
+                             *center_invorb[] = {&center.region, &invorb.region};
 
-    struct iv2d_region *capsule = iv2d_capsule(ox,oy, cx,cy, 4);
+    struct iv2d_union const
+        union_     = {.region={iv2d_union    }, center_orbit , len(center_orbit )};
+    struct iv2d_intersect const
+        intersect  = {.region={iv2d_intersect}, center_orbit , len(center_orbit )},
+        difference = {.region={iv2d_intersect}, center_invorb, len(center_invorb)};
+
+    struct iv2d_capsule capsule = {.region={iv2d_capsule}, ox,oy, cx,cy, 4};
 
     struct {
         struct iv2d_region const *region;
         char const               *name;
     } slides[] = {
-        {union_      , "union"       },
-        {intersection, "intersection"},
-        {difference  , "difference"  },
-        {capsule     , "capsule"     },
+        {&union_    .region, "union"     },
+        {&intersect .region, "intersect" },
+        {&difference.region, "difference"},
+        {&capsule   .region, "capsule"   },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
@@ -205,14 +210,6 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         iv2d_cover(slides[slide].region, 0,0,w,h, app->quality, queue_rect,app);
     }
     app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
-
-    free(center);
-    free(orbit);
-    free(invorb);
-    free(union_);
-    free(intersection);
-    free(difference);
-    free(capsule);
 
     double avg_frametime;
     {
