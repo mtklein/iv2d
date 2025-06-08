@@ -206,6 +206,17 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_halfplane halfplane = halfplane_from(ox,oy, cx,cy);
 
+    struct iv2d_halfplane hp[4] = {
+        halfplane_from(cx,cy, cx,oy),
+        halfplane_from(cx,oy, ox,oy),
+        halfplane_from(ox,oy, ox,cy),
+        halfplane_from(ox,cy, cx,cy),
+    };
+    struct iv2d_region const *quad_region[] = {
+        &hp[0].region, &hp[1].region, &hp[2].region, &hp[3].region,
+    };
+    struct iv2d_intersect quad = {.region={iv2d_intersect}, quad_region, len(quad_region)};
+
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -215,6 +226,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&difference.region, "difference"},
         {&capsule   .region, "capsule"   },
         {&halfplane .region, "halfplane" },
+        {&quad      .region, "quad"      },
     };
     int slide = app->slide;
     if (slide <             0) { slide =             0; }
