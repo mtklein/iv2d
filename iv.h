@@ -63,10 +63,6 @@ static inline iv iv_max(iv x, iv y) {
     };
 }
 
-static inline iv iv_neg(iv x) {
-    return iv_sub((iv){0}, x);
-}
-
 static inline iv iv_sqrt(iv x) {
     return (iv){
         __builtin_elementwise_sqrt(x.lo),

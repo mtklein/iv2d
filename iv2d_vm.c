@@ -56,7 +56,6 @@ op_(add)    { *r = iv_add   (v[ip->x], v[ip->y]); next; }
 op_(sub)    { *r = iv_sub   (v[ip->x], v[ip->y]); next; }
 op_(mul)    { *r = iv_mul   (v[ip->x], v[ip->y]); next; }
 op_(abs)    { *r = iv_abs   (v[ip->x]          ); next; }
-op_(neg)    { *r = iv_neg   (v[ip->x]          ); next; }
 op_(sqrt)   { *r = iv_sqrt  (v[ip->x]          ); next; }
 op_(square) { *r = iv_square(v[ip->x]          ); next; }
 
@@ -66,7 +65,6 @@ int iv2d_add   (builder *b, int x, int y) { return push(b, (inst){op_add   , .x=
 int iv2d_sub   (builder *b, int x, int y) { return push(b, (inst){op_sub   , .x=x, .y=y}); }
 int iv2d_mul   (builder *b, int x, int y) { return push(b, (inst){op_mul   , .x=x, .y=y}); }
 int iv2d_abs   (builder *b, int x       ) { return push(b, (inst){op_abs   , .x=x      }); }
-int iv2d_neg   (builder *b, int x       ) { return push(b, (inst){op_neg   , .x=x      }); }
 int iv2d_sqrt  (builder *b, int x       ) { return push(b, (inst){op_sqrt  , .x=x      }); }
 int iv2d_square(builder *b, int x       ) { return push(b, (inst){op_square, .x=x      }); }
 
