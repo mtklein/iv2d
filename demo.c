@@ -1,11 +1,16 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "iv2d.h"
 #include "iv2d_regions.h"
+#include "iv2d_vm.h"
 #include "len.h"
 #include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
+
+static void free_cleanup(void *p) {
+    free(*(void**)p);
+}
 
 static int wrap(int x, int n) {
     return ((x % n) + n) % n;
@@ -210,11 +215,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h,
+                cr = 0.5f*fminf(cx,cy),
                 th = (float)app->time,
                 ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
                 oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
-    struct iv2d_circle const center = {.region={iv2d_circle}, cx, cy, 0.5f*fminf(cx,cy)},
+    struct iv2d_circle const center = {.region={iv2d_circle}, cx, cy, cr},
                              orbit  = {.region={iv2d_circle}, ox, oy, 100};
     struct iv2d_invert const invorb = {.region={iv2d_invert}, &orbit.region};
 
@@ -242,6 +248,28 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     char ngon_name[128];
     snprintf(ngon_name, sizeof ngon_name, "%d-gon", len(hp));
 
+    __attribute__((cleanup(free_cleanup)))
+    struct iv2d_region *vm_union;
+    {
+        struct iv2d_builder *b = iv2d_builder();
+
+        int center_circle;
+        {
+            int const dx = iv2d_sub (b, iv2d_x(b),iv2d_uni(b,&cx)),
+                      dy = iv2d_sub (b, iv2d_y(b),iv2d_uni(b,&cy)),
+                     len = iv2d_sqrt(b, iv2d_add(b, iv2d_square(b,dx), iv2d_square(b,dy)));
+            center_circle = iv2d_sub(b, len,iv2d_uni(b,&cr));
+        }
+        int orbit_circle;
+        {
+            int const dx = iv2d_sub (b, iv2d_x(b),iv2d_uni(b,&ox)),
+                      dy = iv2d_sub (b, iv2d_y(b),iv2d_uni(b,&oy)),
+                     len = iv2d_sqrt(b, iv2d_add(b, iv2d_square(b,dx), iv2d_square(b,dy)));
+            orbit_circle = iv2d_sub(b, len,iv2d_imm(b,100));
+        }
+        vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
+    }
+
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -252,6 +280,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&capsule   .region, "capsule"   },
         {&halfplane .region, "halfplane" },
         {&ngon      .region,  ngon_name  },
+        {vm_union,           "vm union"  },
     };
     int const slide = wrap(app->slide, len(slides));
 
