@@ -7,8 +7,6 @@ typedef struct {
     int          x,y;
     float        imm;
     float const *uni;
-
-    //int uses, padding;
 } binst;
 
 typedef struct iv2d_builder {
@@ -105,8 +103,8 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
 
     // X and Y are arguments, needing no instruction to produce.
     int insts = 0;
-    for (int i = 0; i < b->insts; i++) {
-        if (b->inst[i].op == X || b->inst[i].op == Y) {
+    for (binst const *binst = b->inst; binst < b->inst+b->insts; binst++) {
+        if (binst->op == X || binst->op == Y) {
             continue;
         }
         insts++;
@@ -116,8 +114,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
     *p = (struct iv2d_program){.region={run_program}, .vals=vals};
 
     struct inst* inst = p->inst;
-    for (int i = 0; i < b->insts; i++) {
-        binst const *binst = b->inst+i;
+    for (binst const *binst = b->inst; binst < b->inst+b->insts; binst++) {
         #pragma clang diagnostic push
         #pragma clang diagnostic ignored "-Wswitch-default"
         switch (binst->op) {
@@ -138,7 +135,6 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         }
         #pragma clang diagnostic pop
     }
-    //enum {X,Y,RET,IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE} op;
 
     free(b->inst);
     free(b);
