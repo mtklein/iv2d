@@ -8,7 +8,7 @@ typedef struct {
     float        imm;
     float const *uni;
 
-    int uses, padding;
+    int last_use, padding;
 } binst;
 
 typedef struct iv2d_builder {
@@ -157,13 +157,12 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
     // RET produces no value.
     int const vals = b->insts;
-    push(b, (binst){RET, .x=ret, .uses=1});
+    push(b, (binst){RET, .x=ret, .last_use=vals});
 
-    for (binst *binst = b->inst+b->insts; binst --> b->inst;) {
-        if (binst->uses) {
-            b->inst[binst->x].uses++;
-            b->inst[binst->y].uses++;
-        }
+    for (int i = 0; i < b->insts; i++) {
+        binst const *binst = b->inst+i;
+        b->inst[binst->x].last_use = i;
+        b->inst[binst->y].last_use = i;
     }
 
     // X and Y are arguments, needing no instruction to produce.
@@ -179,18 +178,31 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
     *p = (struct iv2d_program){.region={run_program}, .vals=vals};
 
     struct inst* inst = p->inst;
-    for (binst const *binst = b->inst; binst < b->inst+b->insts; binst++) {
+    _Bool x_in_reg = 0;
+    for (int i = 0; i < b->insts; i++) {
+        binst const *binst = b->inst+i;
+
+        _Bool const leave_x_in_reg = binst->last_use == i+1
+                                  && b->inst[i+1].x == i
+                                  && b->inst[i+1].y != i;
+        // op_fn array order is mx,mr,rx,rr
+        //   leave_x_in_reg=0, x_in_reg=0 -> mx (0)
+        //   leave_x_in_reg=0, x_in_reg=1 -> mr (1)
+        //   leave_x_in_reg=1, x_in_reg=0 -> rx (2)
+        //   leave_x_in_reg=1, x_in_reg=1 -> rr (3)
 
         iv (*op)(struct inst const*, iv*, iv const*, iv)
-            = op_fn[binst->op][0];
+            = op_fn[binst->op][2*(int)leave_x_in_reg + (int)x_in_reg];
+
+        if (!op) {
+            continue;
+        }
 
         *inst = (struct inst){.op=op, .x=binst->x, .y=binst->y};
         if (binst->op == IMM) { inst->imm = binst->imm; }
         if (binst->op == UNI) { inst->uni = binst->uni; }
-
-        if (inst->op) {
-            inst++;
-        }
+        inst++;
+        x_in_reg = leave_x_in_reg;
     }
 
     free(b->inst);
