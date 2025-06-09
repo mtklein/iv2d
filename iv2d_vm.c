@@ -133,14 +133,14 @@ static iv (*op_fn[][4])(struct inst const*, iv*, iv const*, iv) = {
     [RET] = {ret_x,ret_r, ret_x,ret_r},  // Are we returning the hot register or v[ip->x]?
 };
 
-struct iv2d_program {
+struct program {
     struct iv2d_region region;
     int                vals, padding;
     struct inst        inst[];
 };
 
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
-    struct iv2d_program const *p = (struct iv2d_program const*)region;
+    struct program const *p = (struct program const*)region;
 
     iv small[128];
     iv *v = (p->vals > len(small)) ? malloc((size_t)p->vals * sizeof *v) : small;
@@ -174,8 +174,8 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         insts++;
     }
 
-    struct iv2d_program *p = malloc(sizeof *p + (size_t)insts * sizeof *p->inst);
-    *p = (struct iv2d_program){.region={run_program}, .vals=vals};
+    struct program *p = malloc(sizeof *p + (size_t)insts * sizeof *p->inst);
+    *p = (struct program){.region={run_program}, .vals=vals};
 
     struct inst* inst = p->inst;
     _Bool x_in_reg = 0;
