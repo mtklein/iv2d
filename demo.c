@@ -255,17 +255,17 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
         int center_circle;
         {
-            int const dx = iv2d_sub (b, iv2d_x(b),iv2d_uni(b,&cx)),
-                      dy = iv2d_sub (b, iv2d_y(b),iv2d_uni(b,&cy)),
-                     len = iv2d_sqrt(b, iv2d_add(b, iv2d_square(b,dx), iv2d_square(b,dy)));
-           center_circle = iv2d_sub (b, len,iv2d_uni(b,&cr));
+            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&cx))),
+                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&cy))),
+                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
+            center_circle = iv2d_sub(b, len, iv2d_uni(b,&cr));
         }
         int orbit_circle;
         {
-            int const dx = iv2d_sub (b, iv2d_x(b),iv2d_uni(b,&ox)),
-                      dy = iv2d_sub (b, iv2d_y(b),iv2d_uni(b,&oy)),
-                     len = iv2d_sqrt(b, iv2d_add(b, iv2d_square(b,dx), iv2d_square(b,dy)));
-            orbit_circle = iv2d_sub (b, len,iv2d_imm(b,100));
+            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&ox))),
+                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&oy))),
+                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
+            orbit_circle  = iv2d_sub(b, len, iv2d_imm(b,100));
         }
         vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
     }
