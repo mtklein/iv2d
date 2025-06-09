@@ -33,12 +33,8 @@ static int push(builder *b, inst inst) {
 
 op_(imm) { *r = as_iv( ip->imm); next; }
 op_(uni) { *r = as_iv(*ip->uni); next; }
-int iv2d_imm(builder *b, float imm) {
-    return push(b, (inst){op_imm, .imm=imm});
-}
-int iv2d_uni(builder *b, float const *uni) {
-    return push(b, (inst){op_uni, .uni=uni});
-}
+int iv2d_imm(builder *b, float        imm) { return push(b, (inst){op_imm, .imm=imm}); }
+int iv2d_uni(builder *b, float const *uni) { return push(b, (inst){op_uni, .uni=uni}); }
 
 builder* iv2d_builder(void) {
     builder *b = calloc(1, sizeof *b);
