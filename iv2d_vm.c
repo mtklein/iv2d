@@ -147,7 +147,7 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     iv *v = (p->vals > len(small)) ? malloc((size_t)p->vals * sizeof *v) : small;
     v[0] = x;
     v[1] = y;
-    iv const ret = p->inst->op(p->inst,v+2,v, x/*anything will do*/);
+    iv const ret = p->inst->op(p->inst,v+2,v, x/*anything will do, this is cheapest*/);
 
     if (v != small) {
         free(v);
@@ -178,7 +178,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
 
     struct inst* inst = p->inst;
     _Bool rhs_in_reg = 0;
-    for (int i = 0; i < b->insts; i++) {
+    for (int i = 2; i < b->insts; i++) {
         binst const *binst = b->inst+i;
 
         _Bool const write_to_reg = binst->last_use == i+1
@@ -192,10 +192,6 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
 
         iv (*op)(struct inst const*, iv*, iv const*, iv)
             = op_fn[binst->op][2*(int)write_to_reg + (int)rhs_in_reg];
-
-        if (!op) {
-            continue;
-        }
 
         *inst = (struct inst){.op=op, .lhs=binst->lhs, .rhs=binst->rhs};
         if (binst->op == IMM) { inst->imm = binst->imm; }
