@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 typedef struct {
-    enum {X,Y,IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE,RET} op;
+    enum {PHONY,IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE,RET} op;
     int          lhs,rhs;
     float        imm;
     float const *uni;
@@ -30,8 +30,8 @@ static int push(builder *b, binst inst) {
 
 builder* iv2d_builder(void) {
     builder *b = calloc(1, sizeof *b);
-    push(b, (binst){.op=X});
-    push(b, (binst){.op=Y});
+    push(b, (binst){.op=PHONY});  // x
+    push(b, (binst){.op=PHONY});  // y
     return b;
 }
 
@@ -116,9 +116,6 @@ op_(ret_m) {           (void)m; (void)r; return v[ip->rhs]; }
 op_(ret_r) { (void)ip; (void)m; (void)v; return r         ; }
 
 static iv (*op_fn[][4])(struct inst const *ip, iv *m, iv const *v, iv r) = {
-    [X] = {NULL,NULL,NULL,NULL},
-    [Y] = {NULL,NULL,NULL,NULL},
-
     [IMM] = {imm_m,imm_m, imm_r,imm_r},
     [UNI] = {uni_m,uni_m, uni_r,uni_r},
 
@@ -156,25 +153,16 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
 }
 
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
-    int const vals = b->insts;
-    push(b, (binst){RET, .rhs=ret, .last_use=vals});
+    push(b, (binst){RET, .rhs=ret});
 
-    for (int i = 0; i < b->insts; i++) {
+    for (int i = 2; i < b->insts; i++) {
         binst const *binst = b->inst+i;
         b->inst[binst->lhs].last_use = i;
         b->inst[binst->rhs].last_use = i;
     }
 
-    int insts = 0;
-    for (binst const *binst = b->inst; binst < b->inst+b->insts; binst++) {
-        if (binst->op == X || binst->op == Y) {
-            continue;
-        }
-        insts++;
-    }
-
-    struct program *p = malloc(sizeof *p + (size_t)insts * sizeof *p->inst);
-    *p = (struct program){.region={run_program}, .vals=vals};
+    struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
+    *p = (struct program){.region={run_program}, .vals=b->insts};
 
     struct inst* inst = p->inst;
     _Bool rhs_in_reg = 0;
