@@ -135,8 +135,8 @@ static iv (*op_fn[][4])(struct inst const *ip, iv *slot, iv const *v, iv reg) = 
 
 struct program {
     struct iv2d_region region;
-    int                slots, padding;
-    struct inst        inst[];
+    int         slots, padding;
+    struct inst inst[];
 };
 
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
@@ -144,6 +144,7 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
 
     iv small[4096 / sizeof(iv)];
     iv *v = (p->slots > len(small)) ? malloc((size_t)p->slots * sizeof *v) : small;
+
     v[0] = x;
     v[1] = y;
     iv const ret = p->inst->op(p->inst,v+2,v, x/*anything will do, this is cheapest*/);
@@ -167,7 +168,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         meta[binst->rhs].last_use = i;
     }
 
-    struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
+    struct program *p = malloc(sizeof *p + ((size_t)b->insts - 2) * sizeof *p->inst);
     *p = (struct program){.region={run_program}, .slots=2};
     meta[0].slot = 0;
     meta[1].slot = 1;
