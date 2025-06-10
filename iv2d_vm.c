@@ -66,6 +66,10 @@ struct inst {
 #define op_(name) static iv name(struct inst const *ip, iv *m, iv const *v, iv reg)
 #define next return ip[1].op(ip+1, m+1, v, reg)
 
+// Ops are split up to 4 ways,
+//   m/r - write to *m or reg?
+//   v/r - read rhs from v or reg?
+
 op_(imm_m) {  *m = as_iv(ip->imm); next; }
 op_(imm_r) { reg = as_iv(ip->imm); next; }
 
