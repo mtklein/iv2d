@@ -1,6 +1,7 @@
 builddir = out
 
 cc   = /opt/homebrew/opt/llvm/bin/clang
+#cc   = /opt/homebrew/opt/llvm/bin/clang -fsanitize=address,integer,undefined
 warn = -Weverything $
     -Wno-declaration-after-statement $
     -Wno-unsafe-buffer-usage $
@@ -30,7 +31,7 @@ build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
 build out/iv2d_vm_test.ok: run  out/iv2d_vm_test
 
 build out/stb_image_write.o: compile stb_image_write.c
-    flags = -w
+    flags = -w -fno-sanitize=integer
 
 build out/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
