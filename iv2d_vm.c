@@ -142,7 +142,7 @@ struct program {
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
-    iv small[128];
+    iv small[4096 / sizeof(iv)];
     iv *v = (p->slots > len(small)) ? malloc((size_t)p->slots * sizeof *v) : small;
     v[0] = x;
     v[1] = y;
