@@ -7,8 +7,6 @@ typedef struct {
     int          lhs,rhs;
     float        imm;
     float const *uni;
-
-    int last_use, padding;
 } binst;
 
 typedef struct iv2d_builder {
@@ -159,29 +157,31 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
     push(b, (binst){RET, .rhs=ret});
 
+    struct {
+        int last_use,slot;
+    } *meta = calloc((size_t)b->insts, sizeof *meta);
+
     for (int i = 2; i < b->insts; i++) {
         binst const *binst = b->inst+i;
-        b->inst[binst->lhs].last_use = i;
-        b->inst[binst->rhs].last_use = i;
+        meta[binst->lhs].last_use =
+        meta[binst->rhs].last_use = i;
     }
 
     struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
     *p = (struct program){.region={run_program}, .slots=2};
-
-    int *slot = calloc((size_t)b->insts, sizeof *slot);
-    slot[0] = 0;
-    slot[1] = 1;
+    meta[0].slot = 0;
+    meta[1].slot = 1;
 
     struct inst* inst = p->inst;
     _Bool rhs_in_reg = 0;
     for (int i = 2; i < b->insts; i++) {
         binst const *binst = b->inst+i;
 
-        _Bool const write_to_reg = binst->last_use == i+1
+        _Bool const write_to_reg = meta[i].last_use == i+1
                                 && b->inst[i+1].lhs != i
                                 && b->inst[i+1].rhs == i;
         if (!write_to_reg) {
-            slot[i] = p->slots++;
+            meta[i].slot = p->slots++;
         }
 
         // op_fn array order is
@@ -192,7 +192,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
 
         iv (*op)(struct inst const*, iv*, iv const*, iv)
             = op_fn[binst->op][2*(int)write_to_reg + (int)rhs_in_reg];
-        *inst = (struct inst){.op=op, .lhs=slot[binst->lhs], .rhs=slot[binst->rhs]};
+        *inst = (struct inst){.op=op, .lhs=meta[binst->lhs].slot, .rhs=meta[binst->rhs].slot};
         if (binst->op == IMM) { inst->imm = binst->imm; }
         if (binst->op == UNI) { inst->uni = binst->uni; }
         inst++;
@@ -200,7 +200,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         rhs_in_reg = write_to_reg;
     }
 
-    free(slot);
+    free(meta);
     free(b->inst);
     free(b);
     return &p->region;
