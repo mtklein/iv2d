@@ -63,59 +63,59 @@ struct inst {
     };
 };
 
-#define op_(name) static iv name(struct inst const *ip, iv *m, iv const *v, iv r)
-#define next return ip[1].op(ip+1, m+1, v, r)
+#define op_(name) static iv name(struct inst const *ip, iv *m, iv const *v, iv reg)
+#define next return ip[1].op(ip+1, m+1, v, reg)
 
-op_(imm_m) { *m = as_iv(ip->imm); next; }
-op_(imm_r) {  r = as_iv(ip->imm); next; }
+op_(imm_m) {  *m = as_iv(ip->imm); next; }
+op_(imm_r) { reg = as_iv(ip->imm); next; }
 
-op_(uni_m) { *m = as_iv(*ip->uni); next; }
-op_(uni_r) {  r = as_iv(*ip->uni); next; }
+op_(uni_m) {  *m = as_iv(*ip->uni); next; }
+op_(uni_r) { reg = as_iv(*ip->uni); next; }
 
-op_(add_mm) { *m = iv_add(v[ip->lhs], v[ip->rhs]); next; }
-op_(add_mr) { *m = iv_add(v[ip->lhs], r         ); next; }
-op_(add_rm) {  r = iv_add(v[ip->lhs], v[ip->rhs]); next; }
-op_(add_rr) {  r = iv_add(v[ip->lhs], r         ); next; }
+op_(add_mm) {  *m = iv_add(v[ip->lhs], v[ip->rhs]); next; }
+op_(add_mr) {  *m = iv_add(v[ip->lhs], reg       ); next; }
+op_(add_rm) { reg = iv_add(v[ip->lhs], v[ip->rhs]); next; }
+op_(add_rr) { reg = iv_add(v[ip->lhs], reg       ); next; }
 
-op_(sub_mm) { *m = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
-op_(sub_mr) { *m = iv_sub(v[ip->lhs], r         ); next; }
-op_(sub_rm) {  r = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
-op_(sub_rr) {  r = iv_sub(v[ip->lhs], r         ); next; }
+op_(sub_mm) {  *m = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
+op_(sub_mr) {  *m = iv_sub(v[ip->lhs], reg       ); next; }
+op_(sub_rm) { reg = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
+op_(sub_rr) { reg = iv_sub(v[ip->lhs], reg       ); next; }
 
-op_(mul_mm) { *m = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
-op_(mul_mr) { *m = iv_mul(v[ip->lhs], r         ); next; }
-op_(mul_rm) {  r = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
-op_(mul_rr) {  r = iv_mul(v[ip->lhs], r         ); next; }
+op_(mul_mm) {  *m = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
+op_(mul_mr) {  *m = iv_mul(v[ip->lhs], reg       ); next; }
+op_(mul_rm) { reg = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
+op_(mul_rr) { reg = iv_mul(v[ip->lhs], reg       ); next; }
 
-op_(min_mm) { *m = iv_min(v[ip->lhs], v[ip->rhs]); next; }
-op_(min_mr) { *m = iv_min(v[ip->lhs], r         ); next; }
-op_(min_rm) {  r = iv_min(v[ip->lhs], v[ip->rhs]); next; }
-op_(min_rr) {  r = iv_min(v[ip->lhs], r         ); next; }
+op_(min_mm) {  *m = iv_min(v[ip->lhs], v[ip->rhs]); next; }
+op_(min_mr) {  *m = iv_min(v[ip->lhs], reg       ); next; }
+op_(min_rm) { reg = iv_min(v[ip->lhs], v[ip->rhs]); next; }
+op_(min_rr) { reg = iv_min(v[ip->lhs], reg       ); next; }
 
-op_(max_mm) { *m = iv_max(v[ip->lhs], v[ip->rhs]); next; }
-op_(max_mr) { *m = iv_max(v[ip->lhs], r         ); next; }
-op_(max_rm) {  r = iv_max(v[ip->lhs], v[ip->rhs]); next; }
-op_(max_rr) {  r = iv_max(v[ip->lhs], r         ); next; }
+op_(max_mm) {  *m = iv_max(v[ip->lhs], v[ip->rhs]); next; }
+op_(max_mr) {  *m = iv_max(v[ip->lhs], reg       ); next; }
+op_(max_rm) { reg = iv_max(v[ip->lhs], v[ip->rhs]); next; }
+op_(max_rr) { reg = iv_max(v[ip->lhs], reg       ); next; }
 
-op_(abs_mm) { *m = iv_abs(v[ip->rhs]); next; }
-op_(abs_mr) { *m = iv_abs(r         ); next; }
-op_(abs_rm) {  r = iv_abs(v[ip->rhs]); next; }
-op_(abs_rr) {  r = iv_abs(r         ); next; }
+op_(abs_mm) {  *m = iv_abs(v[ip->rhs]); next; }
+op_(abs_mr) {  *m = iv_abs(reg       ); next; }
+op_(abs_rm) { reg = iv_abs(v[ip->rhs]); next; }
+op_(abs_rr) { reg = iv_abs(reg       ); next; }
 
-op_(sqrt_mm) { *m = iv_sqrt(v[ip->rhs]); next; }
-op_(sqrt_mr) { *m = iv_sqrt(r         ); next; }
-op_(sqrt_rm) {  r = iv_sqrt(v[ip->rhs]); next; }
-op_(sqrt_rr) {  r = iv_sqrt(r         ); next; }
+op_(sqrt_mm) {  *m = iv_sqrt(v[ip->rhs]); next; }
+op_(sqrt_mr) {  *m = iv_sqrt(reg       ); next; }
+op_(sqrt_rm) { reg = iv_sqrt(v[ip->rhs]); next; }
+op_(sqrt_rr) { reg = iv_sqrt(reg       ); next; }
 
-op_(square_mm) { *m = iv_square(v[ip->rhs]); next; }
-op_(square_mr) { *m = iv_square(r         ); next; }
-op_(square_rm) {  r = iv_square(v[ip->rhs]); next; }
-op_(square_rr) {  r = iv_square(r         ); next; }
+op_(square_mm) {  *m = iv_square(v[ip->rhs]); next; }
+op_(square_mr) {  *m = iv_square(reg       ); next; }
+op_(square_rm) { reg = iv_square(v[ip->rhs]); next; }
+op_(square_rr) { reg = iv_square(reg       ); next; }
 
-op_(ret_m) {           (void)m; (void)r; return v[ip->rhs]; }
-op_(ret_r) { (void)ip; (void)m; (void)v; return r         ; }
+op_(ret_m) {           (void)m; (void)reg; return v[ip->rhs]; }
+op_(ret_r) { (void)ip; (void)m; (void)v;   return reg       ; }
 
-static iv (*op_fn[][4])(struct inst const *ip, iv *m, iv const *v, iv r) = {
+static iv (*op_fn[][4])(struct inst const *ip, iv *m, iv const *v, iv reg) = {
     [IMM] = {imm_m,imm_m, imm_r,imm_r},
     [UNI] = {uni_m,uni_m, uni_r,uni_r},
 
