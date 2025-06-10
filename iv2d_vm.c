@@ -72,63 +72,63 @@ op_(imm_r) { reg = as_iv(ip->imm); next; }
 op_(uni_m) {  *m = as_iv(*ip->uni); next; }
 op_(uni_r) { reg = as_iv(*ip->uni); next; }
 
-op_(add_mm) {  *m = iv_add(v[ip->lhs], v[ip->rhs]); next; }
+op_(add_mv) {  *m = iv_add(v[ip->lhs], v[ip->rhs]); next; }
 op_(add_mr) {  *m = iv_add(v[ip->lhs], reg       ); next; }
-op_(add_rm) { reg = iv_add(v[ip->lhs], v[ip->rhs]); next; }
+op_(add_rv) { reg = iv_add(v[ip->lhs], v[ip->rhs]); next; }
 op_(add_rr) { reg = iv_add(v[ip->lhs], reg       ); next; }
 
-op_(sub_mm) {  *m = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
+op_(sub_mv) {  *m = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
 op_(sub_mr) {  *m = iv_sub(v[ip->lhs], reg       ); next; }
-op_(sub_rm) { reg = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
+op_(sub_rv) { reg = iv_sub(v[ip->lhs], v[ip->rhs]); next; }
 op_(sub_rr) { reg = iv_sub(v[ip->lhs], reg       ); next; }
 
-op_(mul_mm) {  *m = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
+op_(mul_mv) {  *m = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
 op_(mul_mr) {  *m = iv_mul(v[ip->lhs], reg       ); next; }
-op_(mul_rm) { reg = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
+op_(mul_rv) { reg = iv_mul(v[ip->lhs], v[ip->rhs]); next; }
 op_(mul_rr) { reg = iv_mul(v[ip->lhs], reg       ); next; }
 
-op_(min_mm) {  *m = iv_min(v[ip->lhs], v[ip->rhs]); next; }
+op_(min_mv) {  *m = iv_min(v[ip->lhs], v[ip->rhs]); next; }
 op_(min_mr) {  *m = iv_min(v[ip->lhs], reg       ); next; }
-op_(min_rm) { reg = iv_min(v[ip->lhs], v[ip->rhs]); next; }
+op_(min_rv) { reg = iv_min(v[ip->lhs], v[ip->rhs]); next; }
 op_(min_rr) { reg = iv_min(v[ip->lhs], reg       ); next; }
 
-op_(max_mm) {  *m = iv_max(v[ip->lhs], v[ip->rhs]); next; }
+op_(max_mv) {  *m = iv_max(v[ip->lhs], v[ip->rhs]); next; }
 op_(max_mr) {  *m = iv_max(v[ip->lhs], reg       ); next; }
-op_(max_rm) { reg = iv_max(v[ip->lhs], v[ip->rhs]); next; }
+op_(max_rv) { reg = iv_max(v[ip->lhs], v[ip->rhs]); next; }
 op_(max_rr) { reg = iv_max(v[ip->lhs], reg       ); next; }
 
-op_(abs_mm) {  *m = iv_abs(v[ip->rhs]); next; }
+op_(abs_mv) {  *m = iv_abs(v[ip->rhs]); next; }
 op_(abs_mr) {  *m = iv_abs(reg       ); next; }
-op_(abs_rm) { reg = iv_abs(v[ip->rhs]); next; }
+op_(abs_rv) { reg = iv_abs(v[ip->rhs]); next; }
 op_(abs_rr) { reg = iv_abs(reg       ); next; }
 
-op_(sqrt_mm) {  *m = iv_sqrt(v[ip->rhs]); next; }
+op_(sqrt_mv) {  *m = iv_sqrt(v[ip->rhs]); next; }
 op_(sqrt_mr) {  *m = iv_sqrt(reg       ); next; }
-op_(sqrt_rm) { reg = iv_sqrt(v[ip->rhs]); next; }
+op_(sqrt_rv) { reg = iv_sqrt(v[ip->rhs]); next; }
 op_(sqrt_rr) { reg = iv_sqrt(reg       ); next; }
 
-op_(square_mm) {  *m = iv_square(v[ip->rhs]); next; }
+op_(square_mv) {  *m = iv_square(v[ip->rhs]); next; }
 op_(square_mr) {  *m = iv_square(reg       ); next; }
-op_(square_rm) { reg = iv_square(v[ip->rhs]); next; }
+op_(square_rv) { reg = iv_square(v[ip->rhs]); next; }
 op_(square_rr) { reg = iv_square(reg       ); next; }
 
-op_(ret_m) {           (void)m; (void)reg; return v[ip->rhs]; }
+op_(ret_v) {           (void)m; (void)reg; return v[ip->rhs]; }
 op_(ret_r) { (void)ip; (void)m; (void)v;   return reg       ; }
 
 static iv (*op_fn[][4])(struct inst const *ip, iv *m, iv const *v, iv reg) = {
     [IMM] = {imm_m,imm_m, imm_r,imm_r},
     [UNI] = {uni_m,uni_m, uni_r,uni_r},
 
-    [ADD   ] = {   add_mm,    add_mr,    add_rm,    add_rr},
-    [SUB   ] = {   sub_mm,    sub_mr,    sub_rm,    sub_rr},
-    [MUL   ] = {   mul_mm,    mul_mr,    mul_rm,    mul_rr},
-    [MIN   ] = {   min_mm,    min_mr,    min_rm,    min_rr},
-    [MAX   ] = {   max_mm,    max_mr,    max_rm,    max_rr},
-    [ABS   ] = {   abs_mm,    abs_mr,    abs_rm,    abs_rr},
-    [SQRT  ] = {  sqrt_mm,   sqrt_mr,   sqrt_rm,   sqrt_rr},
-    [SQUARE] = {square_mm, square_mr, square_rm, square_rr},
+    [ADD   ] = {   add_mv,    add_mr,    add_rv,    add_rr},
+    [SUB   ] = {   sub_mv,    sub_mr,    sub_rv,    sub_rr},
+    [MUL   ] = {   mul_mv,    mul_mr,    mul_rv,    mul_rr},
+    [MIN   ] = {   min_mv,    min_mr,    min_rv,    min_rr},
+    [MAX   ] = {   max_mv,    max_mr,    max_rv,    max_rr},
+    [ABS   ] = {   abs_mv,    abs_mr,    abs_rv,    abs_rr},
+    [SQRT  ] = {  sqrt_mv,   sqrt_mr,   sqrt_rv,   sqrt_rr},
+    [SQUARE] = {square_mv, square_mr, square_rv, square_rr},
 
-    [RET] = {ret_m,ret_r, ret_m,ret_r},
+    [RET] = {ret_v,ret_r, ret_v,ret_r},
 };
 
 struct program {
@@ -172,11 +172,11 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         _Bool const write_to_reg = binst->last_use == i+1
                                 && b->inst[i+1].lhs != i
                                 && b->inst[i+1].rhs == i;
-        // op_fn array order is mm,mr,rm,rr
-        //   write_to_reg=0, rhs_in_reg=0 -> mm (0)
-        //   write_to_reg=0, rhs_in_reg=1 -> mr (1)
-        //   write_to_reg=1, rhs_in_reg=0 -> rm (2)
-        //   write_to_reg=1, rhs_in_reg=1 -> rr (3)
+        // op_fn array order is
+        //   write_to_reg=0, rhs_in_reg=0 -> 0 (mv)
+        //   write_to_reg=0, rhs_in_reg=1 -> 1 (mr)
+        //   write_to_reg=1, rhs_in_reg=0 -> 2 (rv)
+        //   write_to_reg=1, rhs_in_reg=1 -> 3 (rr)
 
         iv (*op)(struct inst const*, iv*, iv const*, iv)
             = op_fn[binst->op][2*(int)write_to_reg + (int)rhs_in_reg];
