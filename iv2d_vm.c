@@ -117,22 +117,6 @@ op_(square_rr) {     reg = iv_square(reg       ); next; }
 op_(ret_v) {           (void)slot; (void)reg; return v[ip->rhs]; }
 op_(ret_r) { (void)ip; (void)slot; (void)v;   return reg       ; }
 
-static iv (*op_fn[][4])(struct inst const *ip, iv *slot, iv const *v, iv reg) = {
-    [IMM] = {imm_s,imm_s, imm_r,imm_r},
-    [UNI] = {uni_s,uni_s, uni_r,uni_r},
-
-    [ADD   ] = {   add_sv,    add_sr,    add_rv,    add_rr},
-    [SUB   ] = {   sub_sv,    sub_sr,    sub_rv,    sub_rr},
-    [MUL   ] = {   mul_sv,    mul_sr,    mul_rv,    mul_rr},
-    [MIN   ] = {   min_sv,    min_sr,    min_rv,    min_rr},
-    [MAX   ] = {   max_sv,    max_sr,    max_rv,    max_rr},
-    [ABS   ] = {   abs_sv,    abs_sr,    abs_rv,    abs_rr},
-    [SQRT  ] = {  sqrt_sv,   sqrt_sr,   sqrt_rv,   sqrt_rr},
-    [SQUARE] = {square_sv, square_sr, square_rv, square_rr},
-
-    [RET] = {ret_v,ret_r, ret_v,ret_r},
-};
-
 struct program {
     struct iv2d_region region;
     int         slots, padding;
@@ -190,9 +174,24 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         //   write_to_reg=0, rhs_in_reg=1 -> 1 (sr)
         //   write_to_reg=1, rhs_in_reg=0 -> 2 (rv)
         //   write_to_reg=1, rhs_in_reg=1 -> 3 (rr)
+        static iv (*op_fn[][4])(struct inst const *ip, iv *slot, iv const *v, iv reg) = {
+            [IMM] = {imm_s,imm_s, imm_r,imm_r},
+            [UNI] = {uni_s,uni_s, uni_r,uni_r},
 
+            [ADD   ] = {   add_sv,    add_sr,    add_rv,    add_rr},
+            [SUB   ] = {   sub_sv,    sub_sr,    sub_rv,    sub_rr},
+            [MUL   ] = {   mul_sv,    mul_sr,    mul_rv,    mul_rr},
+            [MIN   ] = {   min_sv,    min_sr,    min_rv,    min_rr},
+            [MAX   ] = {   max_sv,    max_sr,    max_rv,    max_rr},
+            [ABS   ] = {   abs_sv,    abs_sr,    abs_rv,    abs_rr},
+            [SQRT  ] = {  sqrt_sv,   sqrt_sr,   sqrt_rv,   sqrt_rr},
+            [SQUARE] = {square_sv, square_sr, square_rv, square_rr},
+
+            [RET] = {ret_v,ret_r, ret_v,ret_r},
+        };
         iv (*op)(struct inst const*, iv*, iv const*, iv)
             = op_fn[binst->op][2*(int)write_to_reg + (int)rhs_in_reg];
+
         *inst = (struct inst){.op=op, .lhs=meta[binst->lhs].slot, .rhs=meta[binst->rhs].slot};
         if (binst->op == IMM) { inst->imm = binst->imm; }
         if (binst->op == UNI) { inst->uni = binst->uni; }
