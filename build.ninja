@@ -1,7 +1,6 @@
 builddir = out
 
 cc   = /opt/homebrew/opt/llvm/bin/clang
-#cc   = /opt/homebrew/opt/llvm/bin/clang -fsanitize=address,integer,undefined
 warn = -Weverything $
     -Wno-declaration-after-statement $
     -Wno-unsafe-buffer-usage $
