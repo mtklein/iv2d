@@ -5,7 +5,7 @@
 struct inst {
     union {
         struct {
-            int spill                                              :  1;
+            _Bool spill                                            :  1;
             enum { IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op : 31;
         };
         int op_and_spill;
