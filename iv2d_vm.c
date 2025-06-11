@@ -78,25 +78,38 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     v[0] = x;
     iv rhs=y, *spill = v+1;
 
+    static void* const dispatch[] = {
+        [RET   ] = &&OP_RET,
+        [IMM   ] = &&OP_IMM,
+        [UNI   ] = &&OP_UNI,
+        [ADD   ] = &&OP_ADD,
+        [SUB   ] = &&OP_SUB,
+        [MUL   ] = &&OP_MUL,
+        [MIN   ] = &&OP_MIN,
+        [MAX   ] = &&OP_MAX,
+        [ABS   ] = &&OP_ABS,
+        [SQRT  ] = &&OP_SQRT,
+        [SQUARE] = &&OP_SQUARE,
+    };
+
     for (struct inst const *inst = p->inst; ; inst++) {
         if (inst->rhs >= 0) {
             *spill++ = rhs;
             rhs = v[inst->rhs];
         }
-        switch (inst->op) {
-            case RET: if (v != small) { free(v); } return rhs;
+        goto *dispatch[inst->op];
 
-            case IMM   : rhs = as_iv( inst->imm);         break;
-            case UNI   : rhs = as_iv(*inst->uni);         break;
-            case ADD   : rhs = iv_add(v[inst->lhs], rhs); break;
-            case SUB   : rhs = iv_sub(v[inst->lhs], rhs); break;
-            case MUL   : rhs = iv_mul(v[inst->lhs], rhs); break;
-            case MIN   : rhs = iv_min(v[inst->lhs], rhs); break;
-            case MAX   : rhs = iv_max(v[inst->lhs], rhs); break;
-            case ABS   : rhs = iv_abs(              rhs); break;
-            case SQRT  : rhs = iv_sqrt(             rhs); break;
-            case SQUARE: rhs = iv_square(           rhs); break;
-        }
+        OP_RET   : if (v != small) { free(v); } return rhs;
+        OP_IMM   : rhs = as_iv( inst->imm);         continue;
+        OP_UNI   : rhs = as_iv(*inst->uni);         continue;
+        OP_ADD   : rhs = iv_add(v[inst->lhs], rhs); continue;
+        OP_SUB   : rhs = iv_sub(v[inst->lhs], rhs); continue;
+        OP_MUL   : rhs = iv_mul(v[inst->lhs], rhs); continue;
+        OP_MIN   : rhs = iv_min(v[inst->lhs], rhs); continue;
+        OP_MAX   : rhs = iv_max(v[inst->lhs], rhs); continue;
+        OP_ABS   : rhs = iv_abs(              rhs); continue;
+        OP_SQRT  : rhs = iv_sqrt(             rhs); continue;
+        OP_SQUARE: rhs = iv_square(           rhs); continue;
     }
 }
 
