@@ -4,7 +4,7 @@
 
 struct inst {
     enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op;
-    int          lhs,rhs;
+    int          rhs,lhs;  // Yeah, weird order, but this allows ldp op and rhs at once.
     float        imm;
     float const *uni;
 };
@@ -66,27 +66,36 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     v[0] = x;
     iv rhs=y, *stack = v+1;  // the first inst will spill y to v[1].
 
-    // TODO: try separate fall-through spill targets again; surprised that wasn't any faster.
     static void* const dispatch[] = {
-        &&IMM_, &&UNI_, &&ADD_, &&SUB_, &&MUL_, &&MIN_, &&MAX_, &&ABS_, &&SQT_, &&SQR_, &&RET_
+        &&imm_, &&imm,
+        &&uni_, &&uni,
+        &&add_, &&add,
+        &&sub_, &&sub,
+        &&mul_, &&mul,
+        &&min_, &&min,
+        &&max_, &&max,
+        &&abs_, &&abs,
+        &&sqt_, &&sqt,
+        &&sqr_, &&sqr,
+        &&ret_, &&ret,
     };
-    #define loop goto *dispatch[inst->op]
-    #define maybe_spill if (inst->rhs >= 0) (*stack++ = rhs, rhs = v[inst->rhs])
+    #define loop goto *dispatch[2*inst->op + (inst->rhs < 0)]
+    #define spill (*stack++ = rhs, rhs = v[inst->rhs])
 
     struct inst const *inst = p->inst;
     loop;
 
-    IMM_: maybe_spill;   rhs = as_iv( inst->imm);           inst++; loop;
-    UNI_: maybe_spill;   rhs = as_iv(*inst->uni);           inst++; loop;
-    ADD_: maybe_spill;   rhs = iv_add(v[inst->lhs], rhs);   inst++; loop;
-    SUB_: maybe_spill;   rhs = iv_sub(v[inst->lhs], rhs);   inst++; loop;
-    MUL_: maybe_spill;   rhs = iv_mul(v[inst->lhs], rhs);   inst++; loop;
-    MIN_: maybe_spill;   rhs = iv_min(v[inst->lhs], rhs);   inst++; loop;
-    MAX_: maybe_spill;   rhs = iv_max(v[inst->lhs], rhs);   inst++; loop;
-    ABS_: maybe_spill;   rhs = iv_abs(              rhs);   inst++; loop;
-    SQT_: maybe_spill;   rhs = iv_sqrt(             rhs);   inst++; loop;
-    SQR_: maybe_spill;   rhs = iv_square(           rhs);   inst++; loop;
-    RET_: maybe_spill;   if (v != small) { free(v); }        return rhs;
+    imm_: spill;  imm: rhs = as_iv( inst->imm);          inst++; loop;
+    uni_: spill;  uni: rhs = as_iv(*inst->uni);          inst++; loop;
+    add_: spill;  add: rhs = iv_add(v[inst->lhs], rhs);  inst++; loop;
+    sub_: spill;  sub: rhs = iv_sub(v[inst->lhs], rhs);  inst++; loop;
+    mul_: spill;  mul: rhs = iv_mul(v[inst->lhs], rhs);  inst++; loop;
+    min_: spill;  min: rhs = iv_min(v[inst->lhs], rhs);  inst++; loop;
+    max_: spill;  max: rhs = iv_max(v[inst->lhs], rhs);  inst++; loop;
+    abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
+    sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
+    sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
+    ret_: spill;  ret: if (v != small) { free(v); }       return rhs;
 }
 
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
