@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
+#include <stdio.h>
 
 static void free_cleanup(void *p) {
     free(*(void**)p);
@@ -25,7 +26,6 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 //   - try using stbtt_FlattenCurves() to make some piecewise capsules
 //   - prospero
 //   - tiger
-//   - target wasm/webgl
 
 struct quad {
     struct { float x,y; SDL_FColor c; } vertex[6];
@@ -186,9 +186,11 @@ SDL_AppResult SDL_AppEvent(void *ctx, SDL_Event *event) {
             return SDL_APP_SUCCESS;
 
         case SDL_EVENT_KEY_DOWN:
-            reset_frametimes(app);
-            if (handle_keys(app, (char const[]){(char)event->key.key,0})) {
-                return SDL_APP_SUCCESS;
+            if (!event->key.repeat) {  // TODO: getting spurious repeats with emcc.
+                reset_frametimes(app);
+                if (handle_keys(app, (char const[]){(char)event->key.key,0})) {
+                    return SDL_APP_SUCCESS;
+                }
             }
             break;
 
