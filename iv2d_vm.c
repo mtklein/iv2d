@@ -3,8 +3,14 @@
 #include <stdlib.h>
 
 struct inst {
-    enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op;
-    int          rhs,lhs;  // Yeah, weird order, but this allows ldp op and rhs at once.
+    union {
+        struct {
+            int rhs_in_reg                                         :  1;
+            enum { IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op : 31;
+        };
+        int op_rhs_in_reg;
+    };
+    int      lhs,rhs;
     float        imm;
     float const *uni;
 };
@@ -36,18 +42,18 @@ builder* iv2d_builder(void) {
 int iv2d_x(builder *b) { (void)b; return 0; }
 int iv2d_y(builder *b) { (void)b; return 1; }
 
-int iv2d_imm(builder *b, float        imm) { return push(b, (struct inst){IMM, .imm=imm}); }
-int iv2d_uni(builder *b, float const *uni) { return push(b, (struct inst){UNI, .uni=uni}); }
+int iv2d_imm(builder *b, float        imm) { return push(b, (struct inst){.op=IMM, .imm=imm}); }
+int iv2d_uni(builder *b, float const *uni) { return push(b, (struct inst){.op=UNI, .uni=uni}); }
 
-int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){ADD, .lhs=l, .rhs=r}); }
-int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){SUB, .lhs=l, .rhs=r}); }
-int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){MUL, .lhs=l, .rhs=r}); }
-int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){MIN, .lhs=l, .rhs=r}); }
-int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){MAX, .lhs=l, .rhs=r}); }
+int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
+int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
+int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r}); }
+int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r}); }
+int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r}); }
 
-int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){ABS, .rhs=v}); }
-int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){SQT, .rhs=v}); }
-int iv2d_square(builder *b, int v) { return push(b, (struct inst){SQR, .rhs=v}); }
+int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
+int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
+int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
 
 int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x,y), z); }
 
@@ -79,7 +85,7 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
         &&sqr_, &&sqr,
         &&ret_, &&ret,
     };
-    #define loop goto *dispatch[2*inst->op + (inst->rhs < 0)]
+    #define loop goto *dispatch[inst->op_rhs_in_reg]
     #define spill (*stack++ = rhs, rhs = v[inst->rhs])
 
     struct inst const *inst = p->inst;
@@ -96,10 +102,13 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
     sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
     ret_: spill;  ret: if (v != small) { free(v); }       return rhs;
+
+    #undef loop
+    #undef spill
 }
 
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
-    push(b, (struct inst){RET, .rhs=ret});
+    push(b, (struct inst){.op=RET, .rhs=ret});
 
     struct { int last_use, stack_slot; } *value = calloc((size_t)b->insts, sizeof *value);
 
@@ -112,26 +121,25 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
     struct program *p = malloc(sizeof *p + ((size_t)b->insts - 2) * sizeof *p->inst);
     *p = (struct program){.region={run_program}};
     value[0].stack_slot = p->stack_slots++;
-    value[1].stack_slot = p->stack_slots++;
 
     struct inst* inst = p->inst;
-    _Bool rhs_in_reg = 0;
     for (int i = 2; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
 
-        *inst++ = (struct inst){
-            .op  = binst->op,
-            .lhs =                   value[binst->lhs].stack_slot,
-            .rhs = rhs_in_reg ? -1 : value[binst->rhs].stack_slot,
-            .imm = binst->imm,
-            .uni = binst->uni,
-        };
-
-        rhs_in_reg = (value[i].last_use == i+1 && b->inst[i+1].lhs != i)
-                  || binst->op == RET;
+        _Bool const rhs_in_reg = value[i-1].last_use == i
+                              && binst->lhs != i-1;
         if (!rhs_in_reg) {
-            value[i].stack_slot = p->stack_slots++;
+            value[i-1].stack_slot = p->stack_slots++;
         }
+
+        *inst++ = (struct inst){
+            .op         = binst->op,
+            .rhs_in_reg = rhs_in_reg,
+            .lhs        = value[binst->lhs].stack_slot,
+            .rhs        = value[binst->rhs].stack_slot,
+            .imm        = binst->imm,
+            .uni        = binst->uni,
+        };
     }
 
     free(value);
