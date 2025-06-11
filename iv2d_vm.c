@@ -2,7 +2,7 @@
 #include "len.h"
 #include <stdlib.h>
 
-enum Op {RET,IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE};
+enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE,RET};
 
 typedef struct {
     enum Op      op;
@@ -79,7 +79,6 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     iv rhs=y, *spill = v+1;
 
     static void* const dispatch[] = {
-        [RET   ] = &&OP_RET,
         [IMM   ] = &&OP_IMM,
         [UNI   ] = &&OP_UNI,
         [ADD   ] = &&OP_ADD,
@@ -90,27 +89,26 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
         [ABS   ] = &&OP_ABS,
         [SQRT  ] = &&OP_SQRT,
         [SQUARE] = &&OP_SQUARE,
+        [RET   ] = &&OP_RET,
     };
 
-    for (struct inst const *inst = p->inst; ; inst++) {
-        if (inst->rhs >= 0) {
-            *spill++ = rhs;
-            rhs = v[inst->rhs];
-        }
-        goto *dispatch[inst->op];
+#define maybe_spill if (inst->rhs >= 0) (*spill++ = rhs, rhs = v[inst->rhs])
+#define next goto *dispatch[(++inst)->op]
 
-        OP_RET   : if (v != small) { free(v); } return rhs;
-        OP_IMM   : rhs = as_iv( inst->imm);         continue;
-        OP_UNI   : rhs = as_iv(*inst->uni);         continue;
-        OP_ADD   : rhs = iv_add(v[inst->lhs], rhs); continue;
-        OP_SUB   : rhs = iv_sub(v[inst->lhs], rhs); continue;
-        OP_MUL   : rhs = iv_mul(v[inst->lhs], rhs); continue;
-        OP_MIN   : rhs = iv_min(v[inst->lhs], rhs); continue;
-        OP_MAX   : rhs = iv_max(v[inst->lhs], rhs); continue;
-        OP_ABS   : rhs = iv_abs(              rhs); continue;
-        OP_SQRT  : rhs = iv_sqrt(             rhs); continue;
-        OP_SQUARE: rhs = iv_square(           rhs); continue;
-    }
+    struct inst const *inst = p->inst;
+    goto *dispatch[inst->op];
+
+    OP_IMM   : maybe_spill;   rhs = as_iv( inst->imm);           next;
+    OP_UNI   : maybe_spill;   rhs = as_iv(*inst->uni);           next;
+    OP_ADD   : maybe_spill;   rhs = iv_add(v[inst->lhs], rhs);   next;
+    OP_SUB   : maybe_spill;   rhs = iv_sub(v[inst->lhs], rhs);   next;
+    OP_MUL   : maybe_spill;   rhs = iv_mul(v[inst->lhs], rhs);   next;
+    OP_MIN   : maybe_spill;   rhs = iv_min(v[inst->lhs], rhs);   next;
+    OP_MAX   : maybe_spill;   rhs = iv_max(v[inst->lhs], rhs);   next;
+    OP_ABS   : maybe_spill;   rhs = iv_abs(              rhs);   next;
+    OP_SQRT  : maybe_spill;   rhs = iv_sqrt(             rhs);   next;
+    OP_SQUARE: maybe_spill;   rhs = iv_square(           rhs);   next;
+    OP_RET   : maybe_spill;   if (v != small) { free(v); } return rhs;
 }
 
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
