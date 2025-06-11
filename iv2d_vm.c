@@ -2,7 +2,7 @@
 #include "len.h"
 #include <stdlib.h>
 
-enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE,RET};
+enum Op {RET,IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE};
 
 typedef struct {
     enum Op      op;
