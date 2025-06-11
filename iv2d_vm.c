@@ -2,10 +2,8 @@
 #include "len.h"
 #include <stdlib.h>
 
-enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQRT,SQUARE,RET};
-
 typedef struct {
-    enum Op      op;
+    enum Op {IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op;
     int          lhs,rhs;
     float        imm;
     float const *uni;
@@ -47,9 +45,9 @@ int iv2d_mul(builder *b, int l, int r) { return push(b, (binst){MUL, .lhs=l, .rh
 int iv2d_min(builder *b, int l, int r) { return push(b, (binst){MIN, .lhs=l, .rhs=r}); }
 int iv2d_max(builder *b, int l, int r) { return push(b, (binst){MAX, .lhs=l, .rhs=r}); }
 
-int iv2d_abs   (builder *b, int v) { return push(b, (binst){ABS   , .rhs=v}); }
-int iv2d_sqrt  (builder *b, int v) { return push(b, (binst){SQRT  , .rhs=v}); }
-int iv2d_square(builder *b, int v) { return push(b, (binst){SQUARE, .rhs=v}); }
+int iv2d_abs   (builder *b, int v) { return push(b, (binst){ABS, .rhs=v}); }
+int iv2d_sqrt  (builder *b, int v) { return push(b, (binst){SQT, .rhs=v}); }
+int iv2d_square(builder *b, int v) { return push(b, (binst){SQR, .rhs=v}); }
 
 int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x,y), z); }
 
@@ -76,39 +74,29 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     iv small[4096 / sizeof(iv)];
     iv *v = (p->slots > len(small)) ? malloc((size_t)p->slots * sizeof *v) : small;
     v[0] = x;
-    iv rhs=y, *spill = v+1;
+    iv rhs=y, *spill = v+1;  // the first inst will spill y to v[1].
 
+    // TODO: try separate fall-through spill targets again; surprised that wasn't any faster.
     static void* const dispatch[] = {
-        [IMM   ] = &&OP_IMM,
-        [UNI   ] = &&OP_UNI,
-        [ADD   ] = &&OP_ADD,
-        [SUB   ] = &&OP_SUB,
-        [MUL   ] = &&OP_MUL,
-        [MIN   ] = &&OP_MIN,
-        [MAX   ] = &&OP_MAX,
-        [ABS   ] = &&OP_ABS,
-        [SQRT  ] = &&OP_SQRT,
-        [SQUARE] = &&OP_SQUARE,
-        [RET   ] = &&OP_RET,
+        &&IMM_, &&UNI_, &&ADD_, &&SUB_, &&MUL_, &&MIN_, &&MAX_, &&ABS_, &&SQT_, &&SQR_, &&RET_
     };
-
-#define maybe_spill if (inst->rhs >= 0) (*spill++ = rhs, rhs = v[inst->rhs])
-#define next goto *dispatch[(++inst)->op]
+    #define loop goto *dispatch[inst->op]
+    #define maybe_spill if (inst->rhs >= 0) (*spill++ = rhs, rhs = v[inst->rhs])
 
     struct inst const *inst = p->inst;
-    goto *dispatch[inst->op];
+    loop;
 
-    OP_IMM   : maybe_spill;   rhs = as_iv( inst->imm);           next;
-    OP_UNI   : maybe_spill;   rhs = as_iv(*inst->uni);           next;
-    OP_ADD   : maybe_spill;   rhs = iv_add(v[inst->lhs], rhs);   next;
-    OP_SUB   : maybe_spill;   rhs = iv_sub(v[inst->lhs], rhs);   next;
-    OP_MUL   : maybe_spill;   rhs = iv_mul(v[inst->lhs], rhs);   next;
-    OP_MIN   : maybe_spill;   rhs = iv_min(v[inst->lhs], rhs);   next;
-    OP_MAX   : maybe_spill;   rhs = iv_max(v[inst->lhs], rhs);   next;
-    OP_ABS   : maybe_spill;   rhs = iv_abs(              rhs);   next;
-    OP_SQRT  : maybe_spill;   rhs = iv_sqrt(             rhs);   next;
-    OP_SQUARE: maybe_spill;   rhs = iv_square(           rhs);   next;
-    OP_RET   : maybe_spill;   if (v != small) { free(v); } return rhs;
+    IMM_: maybe_spill;   rhs = as_iv( inst->imm);           inst++; loop;
+    UNI_: maybe_spill;   rhs = as_iv(*inst->uni);           inst++; loop;
+    ADD_: maybe_spill;   rhs = iv_add(v[inst->lhs], rhs);   inst++; loop;
+    SUB_: maybe_spill;   rhs = iv_sub(v[inst->lhs], rhs);   inst++; loop;
+    MUL_: maybe_spill;   rhs = iv_mul(v[inst->lhs], rhs);   inst++; loop;
+    MIN_: maybe_spill;   rhs = iv_min(v[inst->lhs], rhs);   inst++; loop;
+    MAX_: maybe_spill;   rhs = iv_max(v[inst->lhs], rhs);   inst++; loop;
+    ABS_: maybe_spill;   rhs = iv_abs(              rhs);   inst++; loop;
+    SQT_: maybe_spill;   rhs = iv_sqrt(             rhs);   inst++; loop;
+    SQR_: maybe_spill;   rhs = iv_square(           rhs);   inst++; loop;
+    RET_: maybe_spill;   if (v != small) { free(v); }        return rhs;
 }
 
 struct iv2d_region* iv2d_ret(builder *b, int ret) {
