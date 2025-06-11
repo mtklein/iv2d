@@ -22,10 +22,10 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 }
 
 // TODO
-//   - add a recurse-into-9-sub-parts coverage strategy?
-//   - add a scanlines coverage strategy?
-//   - cover with other shapes?  triangles, quads?
 //   - try using stbtt_FlattenCurves() to make some piecewise capsules
+//   - prospero
+//   - tiger
+//   - target wasm/webgl
 
 struct quad {
     struct { float x,y; SDL_FColor c; } vertex[6];
