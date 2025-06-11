@@ -3,6 +3,7 @@ builddir = out
 cc   = /opt/homebrew/opt/llvm/bin/clang
 warn = -Weverything $
     -Wno-declaration-after-statement $
+    -Wno-switch-default $
     -Wno-unsafe-buffer-usage $
 
 
