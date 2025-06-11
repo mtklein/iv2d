@@ -5,10 +5,10 @@
 struct inst {
     union {
         struct {
-            int rhs_in_reg                                         :  1;
+            int spill                                              :  1;
             enum { IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op : 31;
         };
-        int op_rhs_in_reg;
+        int op_and_spill;
     };
     int      lhs,rhs;
     float        imm;
@@ -73,19 +73,19 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     iv rhs=y, *stack = v+1;  // the first inst will spill y to v[1].
 
     static void* const dispatch[] = {
-        &&imm_, &&imm,
-        &&uni_, &&uni,
-        &&add_, &&add,
-        &&sub_, &&sub,
-        &&mul_, &&mul,
-        &&min_, &&min,
-        &&max_, &&max,
-        &&abs_, &&abs,
-        &&sqt_, &&sqt,
-        &&sqr_, &&sqr,
-        &&ret_, &&ret,
+        &&imm, &&imm_,
+        &&uni, &&uni_,
+        &&add, &&add_,
+        &&sub, &&sub_,
+        &&mul, &&mul_,
+        &&min, &&min_,
+        &&max, &&max_,
+        &&abs, &&abs_,
+        &&sqt, &&sqt_,
+        &&sqr, &&sqr_,
+        &&ret, &&ret_,
     };
-    #define loop goto *dispatch[inst->op_rhs_in_reg]
+    #define loop goto *dispatch[inst->op_and_spill]
     #define spill (*stack++ = rhs, rhs = v[inst->rhs])
 
     struct inst const *inst = p->inst;
@@ -126,19 +126,19 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
     for (int i = 2; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
 
-        _Bool const rhs_in_reg = value[i-1].last_use == i
-                              && binst->lhs != i-1;
-        if (!rhs_in_reg) {
+        _Bool const spill = value[i-1].last_use != i
+                         || binst->lhs == i-1;
+        if (spill) {
             value[i-1].stack_slot = p->stack_slots++;
         }
 
         *inst++ = (struct inst){
-            .op         = binst->op,
-            .rhs_in_reg = rhs_in_reg,
-            .lhs        = value[binst->lhs].stack_slot,
-            .rhs        = value[binst->rhs].stack_slot,
-            .imm        = binst->imm,
-            .uni        = binst->uni,
+            .op    = binst->op,
+            .spill = spill,
+            .lhs   = value[binst->lhs].stack_slot,
+            .rhs   = value[binst->rhs].stack_slot,
+            .imm   = binst->imm,
+            .uni   = binst->uni,
         };
     }
 
