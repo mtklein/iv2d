@@ -101,7 +101,7 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     min_: spill;  min: rhs = iv_min(v[inst->lhs], rhs);  inst++; loop;
     max_: spill;  max: rhs = iv_max(v[inst->lhs], rhs);  inst++; loop;
 
-    ret_: spill;  ret: return rhs;
+    ret_: rhs = v[inst->rhs]; ret: return rhs;
     #undef loop
     #undef spill
 }
