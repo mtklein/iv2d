@@ -3,6 +3,7 @@
 #include "iv2d_regions.h"
 #include "iv2d_vm.h"
 #include "len.h"
+#include "prospero.h"
 #include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -24,7 +25,6 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 
 // TODO
 //   - try using stbtt_FlattenCurves() to make some piecewise capsules
-//   - prospero
 //   - tiger
 
 struct quad {
@@ -239,10 +239,11 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
 
     struct iv2d_halfplane hp[7];
     for (int i = 0; i < len(hp); i++) {
-        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*M_PI/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i  ) * 2*M_PI/len(hp)),
-                               cx + 100 * (float)cos(app->time + (i+1) * 2*M_PI/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i+1) * 2*M_PI/len(hp)));
+        double const pi = atan(1)*4;
+        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(app->time + (i  ) * 2*pi/len(hp)),
+                               cx + 100 * (float)cos(app->time + (i+1) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(app->time + (i+1) * 2*pi/len(hp)));
     }
     struct iv2d_region const *ngon_region[len(hp)];
     struct iv2d_setop ngon = intersect_halfplanes(hp, len(hp), ngon_region);
@@ -272,6 +273,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
     }
 
+    __attribute__((cleanup(free_cleanup)))
+    struct iv2d_region *prospero = prospero_region((float)w, (float)h);
+
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -283,6 +287,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {&halfplane .region, "halfplane" },
         {&ngon      .region,  ngon_name  },
         {vm_union,           "vm union"  },
+        {prospero,           "prospero"  },
     };
     int const slide = wrap(app->slide, len(slides));
 
