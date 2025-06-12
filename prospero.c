@@ -12,7 +12,7 @@ static _Bool starts_with(char const *haystack, char const *needle) {
     return 0 == memcmp(haystack, needle, strlen(needle));
 }
 
-struct iv2d_region* prospero_region(float w, float h) {
+struct iv2d_region const* prospero_region(float w, float h) {
     int val[8000];
     struct iv2d_builder *b = iv2d_builder();
 

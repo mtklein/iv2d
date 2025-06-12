@@ -60,15 +60,13 @@ int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x
 
 struct program {
     struct iv2d_region region;
-    int         stack_slots, padding;
     struct inst inst[];
 };
 
-static iv run_program(struct iv2d_region const *region, iv x, iv y) {
+static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
-    iv small[4096 / sizeof(iv)];
-    iv *v = (p->stack_slots > len(small)) ? malloc((size_t)p->stack_slots * sizeof *v) : small;
+    iv *v = scratch;
     v[0] = x;
     iv rhs=y, *stack = v+1;  // the first inst will spill y to v[1].
 
@@ -101,13 +99,13 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
     sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
     sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
-    ret_: spill;  ret: if (v != small) { free(v); }       return rhs;
+    ret_: spill;  ret: return rhs;
 
     #undef loop
     #undef spill
 }
 
-struct iv2d_region* iv2d_ret(builder *b, int ret) {
+struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     push(b, (struct inst){.op=RET, .rhs=ret});
 
     struct { int last_use, stack_slot; } *value = calloc((size_t)b->insts, sizeof *value);
@@ -119,8 +117,9 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
     }
 
     struct program *p = malloc(sizeof *p + ((size_t)b->insts - 2) * sizeof *p->inst);
-    *p = (struct program){.region={run_program}};
-    value[0].stack_slot = p->stack_slots++;
+    *p = (struct program){.region={run_program,0}};
+    int stack_slots = 0;
+    value[0].stack_slot = stack_slots++;
 
     struct inst* inst = p->inst;
     for (int i = 2; i < b->insts; i++) {
@@ -129,7 +128,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
         _Bool const spill = value[i-1].last_use != i
                          || binst->lhs == i-1;
         if (spill) {
-            value[i-1].stack_slot = p->stack_slots++;
+            value[i-1].stack_slot = stack_slots++;
         }
 
         *inst++ = (struct inst){
@@ -141,6 +140,7 @@ struct iv2d_region* iv2d_ret(builder *b, int ret) {
             .uni   = binst->uni,
         };
     }
+    p->region.scratch = sizeof(iv) * (size_t)stack_slots;
 
     free(value);
     free(b->inst);

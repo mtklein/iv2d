@@ -3,7 +3,7 @@
 #include "iv2d.h"
 
 struct iv2d_builder* iv2d_builder(void);
-struct iv2d_region*  iv2d_ret(struct iv2d_builder*, int);  // free() when done
+struct iv2d_region const* iv2d_ret(struct iv2d_builder*, int);  // free() when done
 
 int iv2d_x(struct iv2d_builder*);
 int iv2d_y(struct iv2d_builder*);

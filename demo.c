@@ -1,4 +1,5 @@
 #define SDL_MAIN_USE_CALLBACKS 1
+#include "cleanup.h"
 #include "iv2d.h"
 #include "iv2d_regions.h"
 #include "iv2d_vm.h"
@@ -9,10 +10,6 @@
 #include <SDL3/SDL_main.h>
 #include <math.h>
 #include <stdio.h>
-
-static void free_cleanup(void *p) {
-    free(*(void**)p);
-}
 
 static int wrap(int x, int n) {
     return ((x % n) + n) % n;
@@ -122,7 +119,7 @@ static struct iv2d_halfplane halfplane_from(float x0, float y0, float x1, float 
                 nx = +dy*norm,
                 ny = -dx*norm,
                  d = nx*x0 + ny*y0;
-    return (struct iv2d_halfplane){.region={iv2d_halfplane}, nx,ny,d};
+    return (struct iv2d_halfplane){.region={iv2d_halfplane,0}, nx,ny,d};
 }
 
 static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], int n,
@@ -130,7 +127,7 @@ static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], 
     for (int i = 0; i < n; i++) {
         region[i] = &hp[i].region;
     }
-    return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
+    return (struct iv2d_setop){.region={iv2d_intersect,0}, region, n};
 }
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
@@ -222,18 +219,18 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
                 ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
                 oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
-    struct iv2d_circle const center = {.region={iv2d_circle}, cx, cy, cr},
-                             orbit  = {.region={iv2d_circle}, ox, oy, 100};
-    struct iv2d_invert const invorb = {.region={iv2d_invert}, &orbit.region};
+    struct iv2d_circle const center = {.region={iv2d_circle,0}, cx, cy, cr},
+                             orbit  = {.region={iv2d_circle,0}, ox, oy, 100};
+    struct iv2d_invert const invorb = {.region={iv2d_invert,0}, &orbit.region};
 
     struct iv2d_region const *center_orbit [] = {&center.region, & orbit.region},
                              *center_invorb[] = {&center.region, &invorb.region};
     struct iv2d_setop const
-        union_     = {.region={iv2d_union    }, center_orbit , len(center_orbit )},
-        intersect  = {.region={iv2d_intersect}, center_orbit , len(center_orbit )},
-        difference = {.region={iv2d_intersect}, center_invorb, len(center_invorb)};
+        union_     = {.region={iv2d_union    ,0}, center_orbit , len(center_orbit )},
+        intersect  = {.region={iv2d_intersect,0}, center_orbit , len(center_orbit )},
+        difference = {.region={iv2d_intersect,0}, center_invorb, len(center_invorb)};
 
-    struct iv2d_capsule capsule = {.region={iv2d_capsule}, ox,oy, cx,cy, 4};
+    struct iv2d_capsule capsule = {.region={iv2d_capsule,0}, ox,oy, cx,cy, 4};
 
     struct iv2d_halfplane halfplane = halfplane_from(ox,oy, cx,cy);
 
@@ -252,7 +249,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     snprintf(ngon_name, sizeof ngon_name, "%d-gon", len(hp));
 
     __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region *vm_union;
+    struct iv2d_region const *vm_union;
     {
         struct iv2d_builder *b = iv2d_builder();
 
@@ -274,7 +271,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     }
 
     __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region *prospero = prospero_region((float)w, (float)h);
+    struct iv2d_region const *prospero = NULL;
 
     struct {
         struct iv2d_region const *region;
@@ -291,9 +288,14 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     };
     int const slide = wrap(app->slide, len(slides));
 
+    // TODO: this is too slow to rebuild every frame
+    if (0 == strcmp(slides[slide].name, "prospero")) {
+        slides[slide].region = prospero = prospero_region((float)w, (float)h);
+    }
+
     struct iv2d_region const *region = slides[slide].region;
 
-    struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
+    struct iv2d_stroke stroke = {.region={iv2d_stroke,region->scratch}, region, 2};
     if (app->stroke) {
         region = &stroke.region;
     }
