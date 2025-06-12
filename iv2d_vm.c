@@ -5,8 +5,8 @@
 struct inst {
     union {
         struct {
-            _Bool spill                                            :  1;
-            enum { IMM,UNI,RET,ABS,SQT,SQR,ADD,SUB,MUL,MIN,MAX} op : 31;
+            _Bool spill                                                :  1;
+            enum { X,Y,IMM,UNI,RET,ABS,SQT,SQR,ADD,SUB,MUL,MIN,MAX} op : 31;
         };
         int op_and_spill;
     };
@@ -40,8 +40,8 @@ builder* iv2d_builder(void) {
     return b;
 }
 
-int iv2d_x(builder *b) { (void)b; return -2; }
-int iv2d_y(builder *b) { (void)b; return -1; }
+int iv2d_x(builder *b) { return push(b, (struct inst){.op=X}); }
+int iv2d_y(builder *b) { return push(b, (struct inst){.op=Y}); }
 
 int iv2d_imm(builder *b, float        imm) { return push(b, (struct inst){.op=IMM, .imm=imm}); }
 int iv2d_uni(builder *b, float const *ptr) { return push(b, (struct inst){.op=UNI, .ptr=ptr}); }
@@ -67,12 +67,9 @@ struct program {
 static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
-    iv *v = scratch;
-    *v++ = x;
-    *v++ = y;
-    iv *spill_slot = v, rhs = y;
-
     static void* const dispatch[] = {
+        &&opx, &&opx_,
+        &&opy, &&opy_,
         &&imm, &&imm_,
         &&uni, &&uni_,
         &&ret, &&ret_,
@@ -87,9 +84,12 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     };
     #define loop goto *dispatch[inst->op_and_spill]
     #define spill (*spill_slot++ = rhs, rhs = v[inst->rhs])
+    iv *v = scratch, *spill_slot = v, rhs = as_iv(0);
     struct inst const *inst = p->inst;
     loop;
 
+    opx_: spill;  opx: rhs = x;                          inst++; loop;
+    opy_: spill;  opy: rhs = y;                          inst++; loop;
     imm_: spill;  imm: rhs = as_iv( inst->imm);          inst++; loop;
     uni_: spill;  uni: rhs = as_iv(*inst->ptr);          inst++; loop;
     abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
@@ -113,12 +113,12 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
 
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
-        if (binst->op >= ADD && binst->lhs >= 0) { value[binst->lhs].last_use = i; }
-        if (binst->op >= RET && binst->rhs >= 0) { value[binst->rhs].last_use = i; }
+        if (binst->op >= ADD) { value[binst->lhs].last_use = i; }
+        if (binst->op >= RET) { value[binst->rhs].last_use = i; }
     }
 
     struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
-    *p = (struct program){.region={run_program, 2*sizeof(iv)}};
+    *p = (struct program){.region={run_program, 0}};
 
     int spills = 0;
     for (int i = 0; i < b->insts; i++) {
@@ -133,12 +133,10 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
         p->inst[i] = (struct inst){
             .op    = binst->op,
             .spill = spill,
-            .rhs   = binst->rhs >= 0 ? value[binst->rhs].spill_slot : binst->rhs,
+            .rhs   = value[binst->rhs].spill_slot,
             .ptr   = binst->ptr,
         };
-        if (binst->op >= ADD) {
-            p->inst[i].lhs = binst->lhs >= 0 ? value[binst->lhs].spill_slot : binst->lhs;
-        }
+        if (binst->op >= ADD) { p->inst[i].lhs = value[binst->lhs].spill_slot; }
     }
     p->region.scratch += sizeof(iv) * (size_t)spills;
 
