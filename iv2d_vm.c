@@ -18,6 +18,9 @@ struct inst {
     };
 };
 
+static _Bool uses_lhs(struct inst const *inst) { return inst->op >= ADD; }
+static _Bool uses_rhs(struct inst const *inst) { return inst->op >= RET; }
+
 typedef struct iv2d_builder {
     struct inst *inst;
     int          insts,padding;
@@ -113,8 +116,8 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
 
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
-        if (binst->op >= ADD) { value[binst->lhs].last_use = i; }
-        if (binst->op >= RET) { value[binst->rhs].last_use = i; }
+        if (uses_lhs(binst)) { value[binst->lhs].last_use = i; }
+        if (uses_rhs(binst)) { value[binst->rhs].last_use = i; }
     }
 
     struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
@@ -125,7 +128,7 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
         struct inst const *binst = b->inst+i;
 
         _Bool const spill = (i > 0)
-                         && (value[i-1].last_use > i || (binst->op >= ADD && binst->lhs == i-1));
+                         && (value[i-1].last_use > i || (uses_lhs(binst) && binst->lhs == i-1));
         if (spill) {
             value[i-1].spill_slot = spills++;
         }
@@ -136,7 +139,7 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
             .rhs   = value[binst->rhs].spill_slot,
             .ptr   = binst->ptr,
         };
-        if (binst->op >= ADD) { p->inst[i].lhs = value[binst->lhs].spill_slot; }
+        if (uses_lhs(binst)) { p->inst[i].lhs = value[binst->lhs].spill_slot; }
     }
     p->region.scratch += sizeof(iv) * (size_t)spills;
 
