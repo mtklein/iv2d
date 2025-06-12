@@ -10,9 +10,12 @@ struct inst {
         };
         int op_and_spill;
     };
-    int      lhs,rhs;
-    float        imm;
-    float const *uni;
+    int rhs;
+    union {
+        int          lhs;
+        float        imm;
+        float const *ptr;
+    };
 };
 
 typedef struct iv2d_builder {
@@ -41,7 +44,7 @@ int iv2d_x(builder *b) { (void)b; return -2; }
 int iv2d_y(builder *b) { (void)b; return -1; }
 
 int iv2d_imm(builder *b, float        imm) { return push(b, (struct inst){.op=IMM, .imm=imm}); }
-int iv2d_uni(builder *b, float const *uni) { return push(b, (struct inst){.op=UNI, .uni=uni}); }
+int iv2d_uni(builder *b, float const *ptr) { return push(b, (struct inst){.op=UNI, .ptr=ptr}); }
 
 int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
 int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
@@ -88,7 +91,7 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     loop;
 
     imm_: spill;  imm: rhs = as_iv( inst->imm);          inst++; loop;
-    uni_: spill;  uni: rhs = as_iv(*inst->uni);          inst++; loop;
+    uni_: spill;  uni: rhs = as_iv(*inst->ptr);          inst++; loop;
     abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
     sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
     sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
@@ -130,11 +133,12 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
         p->inst[i] = (struct inst){
             .op    = binst->op,
             .spill = spill,
-            .lhs   = binst->lhs >= 0 ? value[binst->lhs].spill_slot : binst->lhs,
             .rhs   = binst->rhs >= 0 ? value[binst->rhs].spill_slot : binst->rhs,
-            .imm   = binst->imm,
-            .uni   = binst->uni,
+            .ptr   = binst->ptr,
         };
+        if (binst->op >= ADD) {
+            p->inst[i].lhs = binst->lhs >= 0 ? value[binst->lhs].spill_slot : binst->lhs;
+        }
     }
     p->region.scratch += sizeof(iv) * (size_t)spills;
 
