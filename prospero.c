@@ -4,7 +4,7 @@
 #include <string.h>
 
 static char const txt[] = {
-    #embed "../prospero/prospero.vm"
+    #embed "prospero/prospero.vm"
     ,0
 };
 
