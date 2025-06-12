@@ -6,7 +6,7 @@ struct inst {
     union {
         struct {
             _Bool spill                                            :  1;
-            enum { IMM,UNI,ADD,SUB,MUL,MIN,MAX,ABS,SQT,SQR,RET} op : 31;
+            enum { IMM,UNI,RET,ABS,SQT,SQR,ADD,SUB,MUL,MIN,MAX} op : 31;
         };
         int op_and_spill;
     };
@@ -34,26 +34,24 @@ static int push(builder *b, struct inst inst) {
 
 builder* iv2d_builder(void) {
     builder *b = calloc(1, sizeof *b);
-    push(b, (struct inst){.op=IMM});  // x
-    push(b, (struct inst){.op=IMM});  // y
     return b;
 }
 
-int iv2d_x(builder *b) { (void)b; return 0; }
-int iv2d_y(builder *b) { (void)b; return 1; }
+int iv2d_x(builder *b) { (void)b; return -2; }
+int iv2d_y(builder *b) { (void)b; return -1; }
 
 int iv2d_imm(builder *b, float        imm) { return push(b, (struct inst){.op=IMM, .imm=imm}); }
 int iv2d_uni(builder *b, float const *uni) { return push(b, (struct inst){.op=UNI, .uni=uni}); }
+
+int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
+int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
+int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
 
 int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
 int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
 int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r}); }
 int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r}); }
 int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r}); }
-
-int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
-int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
-int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
 
 int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x,y), z); }
 
@@ -67,40 +65,40 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     struct program const *p = (struct program const*)region;
 
     iv *v = scratch;
-    v[0] = x;
-    iv rhs=y, *stack = v+1;  // the first inst will spill y to v[1].
+    *v++ = x;
+    *v++ = y;
+    iv *spill_slot = v, rhs = y;
 
     static void* const dispatch[] = {
         &&imm, &&imm_,
         &&uni, &&uni_,
+        &&ret, &&ret_,
+        &&abs, &&abs_,
+        &&sqt, &&sqt_,
+        &&sqr, &&sqr_,
         &&add, &&add_,
         &&sub, &&sub_,
         &&mul, &&mul_,
         &&min, &&min_,
         &&max, &&max_,
-        &&abs, &&abs_,
-        &&sqt, &&sqt_,
-        &&sqr, &&sqr_,
-        &&ret, &&ret_,
     };
     #define loop goto *dispatch[inst->op_and_spill]
-    #define spill (*stack++ = rhs, rhs = v[inst->rhs])
-
+    #define spill (*spill_slot++ = rhs, rhs = v[inst->rhs])
     struct inst const *inst = p->inst;
     loop;
 
     imm_: spill;  imm: rhs = as_iv( inst->imm);          inst++; loop;
     uni_: spill;  uni: rhs = as_iv(*inst->uni);          inst++; loop;
+    abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
+    sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
+    sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
     add_: spill;  add: rhs = iv_add(v[inst->lhs], rhs);  inst++; loop;
     sub_: spill;  sub: rhs = iv_sub(v[inst->lhs], rhs);  inst++; loop;
     mul_: spill;  mul: rhs = iv_mul(v[inst->lhs], rhs);  inst++; loop;
     min_: spill;  min: rhs = iv_min(v[inst->lhs], rhs);  inst++; loop;
     max_: spill;  max: rhs = iv_max(v[inst->lhs], rhs);  inst++; loop;
-    abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
-    sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
-    sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
-    ret_: spill;  ret: return rhs;
 
+    ret_: spill;  ret: return rhs;
     #undef loop
     #undef spill
 }
@@ -108,39 +106,37 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
 struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     push(b, (struct inst){.op=RET, .rhs=ret});
 
-    struct { int last_use, stack_slot; } *value = calloc((size_t)b->insts, sizeof *value);
+    struct { int last_use, spill_slot; } *value = calloc((size_t)b->insts, sizeof *value);
 
-    for (int i = 2; i < b->insts; i++) {
+    for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
-        value[binst->lhs].last_use =
-        value[binst->rhs].last_use = i;
+        if (binst->op >= ADD && binst->lhs >= 0) { value[binst->lhs].last_use = i; }
+        if (binst->op >= RET && binst->rhs >= 0) { value[binst->rhs].last_use = i; }
     }
 
-    struct program *p = malloc(sizeof *p + ((size_t)b->insts - 2) * sizeof *p->inst);
-    *p = (struct program){.region={run_program,0}};
-    int stack_slots = 0;
-    value[0].stack_slot = stack_slots++;
+    struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
+    *p = (struct program){.region={run_program, 2*sizeof(iv)}};
 
-    struct inst* inst = p->inst;
-    for (int i = 2; i < b->insts; i++) {
+    int spills = 0;
+    for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
 
-        _Bool const spill = value[i-1].last_use != i
-                         || binst->lhs == i-1;
+        _Bool const spill = (i > 0)
+                         && (value[i-1].last_use > i || (binst->op >= ADD && binst->lhs == i-1));
         if (spill) {
-            value[i-1].stack_slot = stack_slots++;
+            value[i-1].spill_slot = spills++;
         }
 
-        *inst++ = (struct inst){
+        p->inst[i] = (struct inst){
             .op    = binst->op,
             .spill = spill,
-            .lhs   = value[binst->lhs].stack_slot,
-            .rhs   = value[binst->rhs].stack_slot,
+            .lhs   = binst->lhs >= 0 ? value[binst->lhs].spill_slot : binst->lhs,
+            .rhs   = binst->rhs >= 0 ? value[binst->rhs].spill_slot : binst->rhs,
             .imm   = binst->imm,
             .uni   = binst->uni,
         };
     }
-    p->region.scratch = sizeof(iv) * (size_t)stack_slots;
+    p->region.scratch += sizeof(iv) * (size_t)spills;
 
     free(value);
     free(b->inst);
