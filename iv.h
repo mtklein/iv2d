@@ -87,3 +87,10 @@ static inline iv iv_abs(iv x) {
                                   __builtin_elementwise_max(a,b) ,
     };
 }
+
+static inline iv iv_inv(iv x) {
+    return (iv) {
+        if_then_else(x.lo > 0 | x.hi < 0 | (x.lo >= 0 & x.hi > 0), 1/x.hi, (float4){0} - 1/0.0f),
+        if_then_else(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0), 1/x.lo, (float4){0} + 1/0.0f),
+    };
+}

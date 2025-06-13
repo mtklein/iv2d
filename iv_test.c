@@ -113,6 +113,39 @@ static void test_abs(void) {
     }
 }
 
+static void test_inv(void) {
+    {
+        iv z = iv_inv((iv){{+1,-4,-1,+0},
+                           {+4,-1,+4,+0}});
+        expect(equiv(z.lo[0], 0.25));
+        expect(equiv(z.hi[0], 1   ));
+
+        expect(equiv(z.lo[1], -1.00));
+        expect(equiv(z.hi[1], -0.25));
+
+        expect(equiv(z.lo[2], -1/0.0));
+        expect(equiv(z.hi[2], +1/0.0));
+
+        expect(equiv(z.lo[3], -1/0.0));
+        expect(equiv(z.hi[3], +1/0.0));
+    }
+    {
+        iv z = iv_inv((iv){{-0,-0,-1, 0},
+                           {-0,+0, 0,+4}});
+        expect(equiv(z.lo[0], -1/0.0));
+        expect(equiv(z.hi[0], +1/0.0));
+
+        expect(equiv(z.lo[1], -1/0.0));
+        expect(equiv(z.hi[1], +1/0.0));
+
+        expect(equiv(z.lo[2], -1/0.0));
+        expect(equiv(z.hi[2], -1    ));
+
+        expect(equiv(z.lo[3],  0.25 ));
+        expect(equiv(z.hi[3], +1/0.0));
+    }
+}
+
 int main(void) {
     test_add();
     test_sub();
@@ -122,5 +155,6 @@ int main(void) {
     test_sqrt();
     test_square();
     test_abs();
+    test_inv();
     return 0;
 }
