@@ -22,3 +22,4 @@ int iv2d_max(struct iv2d_builder*, int,int);
 int iv2d_abs   (struct iv2d_builder*, int);
 int iv2d_sqrt  (struct iv2d_builder*, int);
 int iv2d_square(struct iv2d_builder*, int);
+int iv2d_inv   (struct iv2d_builder*, int);

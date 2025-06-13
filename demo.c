@@ -270,8 +270,12 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
     }
 
-    __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region const *prospero = NULL;
+    float W = (float)w,
+          H = (float)h;
+    static struct iv2d_region const *prospero = NULL;
+    if (prospero == NULL) {
+        prospero = prospero_region(&W,&H);
+    }
 
     struct {
         struct iv2d_region const *region;
@@ -287,11 +291,6 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {prospero,           "prospero"  },
     };
     int const slide = wrap(app->slide, len(slides));
-
-    // TODO: this is too slow to rebuild every frame
-    if (0 == strcmp(slides[slide].name, "prospero")) {
-        slides[slide].region = prospero = prospero_region((float)w, (float)h);
-    }
 
     struct iv2d_region const *region = slides[slide].region;
 

@@ -12,7 +12,7 @@ static _Bool starts_with(char const *haystack, char const *needle) {
     return 0 == memcmp(haystack, needle, strlen(needle));
 }
 
-struct iv2d_region const* prospero_region(float w, float h) {
+struct iv2d_region const* prospero_region(float const *w, float const *h) {
     int val[8000];
     struct iv2d_builder *b = iv2d_builder();
 
@@ -31,12 +31,16 @@ struct iv2d_region const* prospero_region(float w, float h) {
             val[id] = iv2d_imm(b, imm);
             continue;
         }
-        if (starts_with(c, "var-x")) { // Scale [0,w) x to [-1,1].
-            val[id] = iv2d_mad(b, iv2d_x(b), iv2d_imm(b, 2/(w-1)), iv2d_imm(b,-1));
+        if (starts_with(c, "var-x")) { // Scale [0,w) x to [-1,1] as x * (2/(w-1)) - 1
+            int const m = iv2d_mul(b, iv2d_imm(b,+2)
+                                    , iv2d_inv(b, iv2d_sub(b, iv2d_uni(b,w), iv2d_imm(b,+1))));
+            val[id] = iv2d_mad(b, iv2d_x(b), m, iv2d_imm(b,-1));
             continue;
         }
-        if (starts_with(c, "var-y")) { // Scale [0,h) y to [-1,1], flipped.
-            val[id] = iv2d_mad(b, iv2d_y(b), iv2d_imm(b, -2/(h-1)), iv2d_imm(b,+1));
+        if (starts_with(c, "var-y")) { // Scale [0,h) y to [-1,1], as above, flipped.
+            int const m = iv2d_mul(b, iv2d_imm(b,-2)
+                                    , iv2d_inv(b, iv2d_sub(b, iv2d_uni(b,h), iv2d_imm(b,+1))));
+            val[id] = iv2d_mad(b, iv2d_y(b), m, iv2d_imm(b,+1));
             continue;
         }
 

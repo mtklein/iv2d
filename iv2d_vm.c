@@ -5,8 +5,8 @@
 struct inst {
     union {
         struct {
-            _Bool spill                                                :  1;
-            enum { X,Y,IMM,UNI,RET,ABS,SQT,SQR,ADD,SUB,MUL,MIN,MAX} op : 31;
+            _Bool spill                                                    :  1;
+            enum { X,Y,IMM,UNI,RET,ABS,SQT,SQR,INV,ADD,SUB,MUL,MIN,MAX} op : 31;
         };
         int op_and_spill;
     };
@@ -52,6 +52,7 @@ int iv2d_uni(builder *b, float const *ptr) { return push(b, (struct inst){.op=UN
 int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
 int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
 int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
+int iv2d_inv   (builder *b, int v) { return push(b, (struct inst){.op=INV, .rhs=v}); }
 
 int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
 int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
@@ -79,6 +80,7 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
         &&abs, &&abs_,
         &&sqt, &&sqt_,
         &&sqr, &&sqr_,
+        &&inv, &&inv_,
         &&add, &&add_,
         &&sub, &&sub_,
         &&mul, &&mul_,
@@ -98,6 +100,7 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
     sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
     sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
+    inv_: spill;  inv: rhs = iv_inv(              rhs);  inst++; loop;
     add_: spill;  add: rhs = iv_add(v[inst->lhs], rhs);  inst++; loop;
     sub_: spill;  sub: rhs = iv_sub(v[inst->lhs], rhs);  inst++; loop;
     mul_: spill;  mul: rhs = iv_mul(v[inst->lhs], rhs);  inst++; loop;
