@@ -119,6 +119,8 @@ builder* iv2d_builder(void) {
     return b;
 }
 
+static void sort(int *l, int *r) { if (*r < *l) { int const t = *r; *r = *l; *l = t; } }
+
 int iv2d_x(builder *b) { return push(b, (struct inst){.op=X}); }
 int iv2d_y(builder *b) { return push(b, (struct inst){.op=Y}); }
 
@@ -130,11 +132,25 @@ int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=
 int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
 int iv2d_inv   (builder *b, int v) { return push(b, (struct inst){.op=INV, .rhs=v}); }
 
-int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
-int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
-int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r}); }
-int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r}); }
-int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r}); }
+int iv2d_sub(builder *b, int l, int r) {
+    return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r});
+}
+int iv2d_add(builder *b, int l, int r) {
+    sort(&l,&r);
+    return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r});
+}
+int iv2d_mul(builder *b, int l, int r) {
+    sort(&l,&r);
+    return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r});
+}
+int iv2d_min(builder *b, int l, int r) {
+    sort(&l,&r);
+    return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r});
+}
+int iv2d_max(builder *b, int l, int r) {
+    sort(&l,&r);
+    return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r});
+}
 
 int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x,y), z); }
 
