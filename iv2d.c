@@ -61,6 +61,11 @@ static void iv2d_cover_(struct iv2d_region const *region,
         if (inside[0] && inside[2] && t<y) { yield(ctx, l,t,r,y, 1); inside[0] = inside[2] = 0; }
         if (inside[1] && inside[3] && y<b) { yield(ctx, l,y,r,b, 1); inside[1] = inside[3] = 0; }
 
+        if (inside[0] && l<x && t<y) { yield(ctx, l,t,x,y, 1); }
+        if (inside[1] && l<x && y<b) { yield(ctx, l,y,x,b, 1); }
+        if (inside[2] && x<r && t<y) { yield(ctx, x,t,r,y, 1); }
+        if (inside[3] && x<r && y<b) { yield(ctx, x,y,r,b, 1); }
+
         if (__builtin_reduce_or(uncertain)) {
             if (r-l <= 1 && b-t <= 1) {  // These floats hold integers, so actually compare ==.
                 if (quality > 0) {
@@ -70,11 +75,10 @@ static void iv2d_cover_(struct iv2d_region const *region,
                     }
                 }
             } else {
-                int4 const not_outside = inside | uncertain;
-                if (not_outside[0]) { iv2d_cover_(region, l,t,x,y, quality, yield,ctx); }
-                if (not_outside[1]) { iv2d_cover_(region, l,y,x,b, quality, yield,ctx); }
-                if (not_outside[2]) { iv2d_cover_(region, x,t,r,y, quality, yield,ctx); }
-                if (not_outside[3]) { iv2d_cover_(region, x,y,r,b, quality, yield,ctx); }
+                if (uncertain[0]) { iv2d_cover_(region, l,t,x,y, quality, yield,ctx); }
+                if (uncertain[1]) { iv2d_cover_(region, l,y,x,b, quality, yield,ctx); }
+                if (uncertain[2]) { iv2d_cover_(region, x,t,r,y, quality, yield,ctx); }
+                if (uncertain[3]) { iv2d_cover_(region, x,y,r,b, quality, yield,ctx); }
             }
         }
     }
