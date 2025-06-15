@@ -4,6 +4,7 @@ cc   = /opt/homebrew/opt/llvm/bin/clang
 warn = -Weverything $
     -Wno-declaration-after-statement $
     -Wno-gnu-label-as-value $
+    -Wno-pre-c11-compat $
     -Wno-pre-c23-compat $
     -Wno-unsafe-buffer-usage $
 

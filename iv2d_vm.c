@@ -157,11 +157,23 @@ int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x
 
 struct program {
     struct iv2d_region region;
+    int         spills, padding;
     struct inst inst[];
 };
 
-static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv y) {
+struct scratch {
+    int len, padding[3];
+    iv  val[];
+};
+
+static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
+
+    _Thread_local static struct scratch *scratch = NULL;
+    if (scratch == NULL || scratch->len < p->spills) {
+        scratch = realloc(scratch, sizeof *scratch + (size_t)p->spills * sizeof *scratch->val);
+        scratch->len = p->spills;
+    }
 
     static void* const dispatch[] = {
         &&opx, &&opx_,
@@ -181,7 +193,7 @@ static iv run_program(struct iv2d_region const *region, void *scratch, iv x, iv 
     };
     #define loop goto *dispatch[inst->op_and_spill]
     #define spill (*spill_slot++ = rhs, rhs = v[inst->rhs])
-    iv *v = scratch, *spill_slot = v, rhs = as_iv(0);
+    iv *v = scratch->val, *spill_slot = v, rhs = as_iv(0);
     struct inst const *inst = p->inst;
     loop;
 
@@ -216,16 +228,15 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     }
 
     struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
-    *p = (struct program){.region={run_program, 0}};
+    *p = (struct program){.region={run_program}};
 
-    int spills = 0;
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
 
         _Bool const spill = (i > 0)
                          && (value[i-1].last_use > i || (uses_lhs(binst) && binst->lhs == i-1));
         if (spill) {
-            value[i-1].spill_slot = spills++;
+            value[i-1].spill_slot = p->spills++;
         }
 
         p->inst[i] = (struct inst){
@@ -236,7 +247,6 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
         };
         if (uses_lhs(binst)) { p->inst[i].lhs = value[binst->lhs].spill_slot; }
     }
-    p->region.scratch += sizeof(iv) * (size_t)spills;
 
     free(value);
     free(b->dedup.slot);

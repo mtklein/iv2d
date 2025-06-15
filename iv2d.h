@@ -6,8 +6,7 @@
 // A 2D region represented as a signed distance function of x and y.
 // The boundary of the region is eval(x,y)==0, with eval(x,y)<=0 for area within the region.
 struct iv2d_region {
-    iv (*eval)(struct iv2d_region const*, void* scratch, iv x, iv y);
-    size_t scratch;
+    iv (*eval)(struct iv2d_region const*, iv x, iv y);
 };
 
 // iv2d_cover rasterizes an iv2d_region onto a bounded integer grid, yielding
