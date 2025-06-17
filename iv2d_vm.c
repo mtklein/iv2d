@@ -216,8 +216,31 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     #undef spill
 }
 
+static void hoist_imm(builder *b) {
+    int         *new_index = calloc((size_t)b->insts, sizeof *new_index);
+    struct inst *reordered = calloc((size_t)b->insts, sizeof *reordered);
+
+    int ix = 0;
+    for (int imm = 2; imm --> 0;)
+    for (int i = 0; i < b->insts; i++) {
+        struct inst const *binst = b->inst+i;
+        if (imm == (binst->op == IMM)) {
+            reordered[ix] = *binst;
+            if (uses_lhs(binst)) { reordered[ix].lhs = new_index[binst->lhs]; }
+            if (uses_rhs(binst)) { reordered[ix].rhs = new_index[binst->rhs]; }
+            new_index[i] = ix++;
+        }
+    }
+
+    free(new_index);
+    free(b->inst);
+    b->inst = reordered;
+}
+
 struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     push(b, (struct inst){.op=RET, .rhs=ret});
+
+    hoist_imm(b);
 
     struct { int last_use, spill_slot; } *value = calloc((size_t)b->insts, sizeof *value);
 
