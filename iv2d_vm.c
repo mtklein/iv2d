@@ -54,30 +54,34 @@ int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x
 
 struct program {
     struct iv2d_region region;
-    int         vals, padding;
+    int         vals, imms;
     struct inst inst[];
 };
 
 struct scratch {
-    int vals, padding[3];
-    iv  val[];
+    struct program const *active_program;
+    void                 *padding;
+    iv                    val[];
 };
 
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
     _Thread_local static struct scratch *scratch = NULL;
-    if (scratch == NULL || scratch->vals < p->vals) {
+    if (scratch == NULL || scratch->active_program != p) {
         scratch = realloc(scratch, sizeof *scratch + (size_t)p->vals * sizeof *scratch->val);
-        scratch->vals = p->vals;
+        for (int i = 0; i < p->imms; i++) {
+            scratch->val[i] = as_iv(p->inst[i].imm);
+        }
+        scratch->active_program = p;
     }
 
-    iv *v = scratch->val, *next = v;
-    for (struct inst const *inst = p->inst; ; inst++) {
+    iv *v = scratch->val, *next = v+p->imms;
+    for (struct inst const *inst = p->inst+p->imms; ; inst++) {
         #pragma clang diagnostic ignored "-Wswitch-default"
         switch (inst->op) {
-            case RET: return v[inst->rhs];
-            case IMM: *next++ = as_iv( inst->imm);                  break;
+            case IMM: __builtin_unreachable();
+
             case UNI: *next++ = as_iv(*inst->ptr);                  break;
             case X:   *next++ = x;                                  break;
             case Y:   *next++ = y;                                  break;
@@ -90,6 +94,8 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
             case MUL: *next++ = iv_mul(v[inst->lhs], v[inst->rhs]); break;
             case MIN: *next++ = iv_min(v[inst->lhs], v[inst->rhs]); break;
             case MAX: *next++ = iv_max(v[inst->lhs], v[inst->rhs]); break;
+
+            case RET: return v[inst->rhs];
         }
     }
 }
@@ -106,6 +112,7 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
         if (imm == (binst->op == IMM)) {
+            p->imms += (binst->op == IMM);
             struct inst *pinst = p->inst+p->vals;
             *pinst = *binst;
             pinst->lhs = index[binst->lhs];
