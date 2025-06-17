@@ -151,30 +151,26 @@ int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x
 
 struct program {
     struct iv2d_region region;
-    int         vals, imms;
+    int         vals, padding;
     struct inst inst[];
 };
 
 struct scratch {
-    struct program const *active_program;
-    void                 *padding;
-    iv                    val[];
+    int vals, padding[3];
+    iv  val[];
 };
 
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
     _Thread_local static struct scratch *scratch = NULL;
-    if (scratch == NULL || scratch->active_program != p) {
+    if (scratch == NULL || scratch->vals < p->vals) {
         scratch = realloc(scratch, sizeof *scratch + (size_t)p->vals * sizeof *scratch->val);
-        for (int i = 0; i < p->imms; i++) {
-            scratch->val[i] = as_iv(p->inst[i].imm);
-        }
-        scratch->active_program = p;
+        scratch->vals = p->vals;
     }
 
     static void* const dispatch[] = {
-        NULL,
+        &&imm,
         &&uni,
         &&opx,
         &&opy,
@@ -189,10 +185,11 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
         &&min,
         &&max,
     };
-    struct inst const *inst = p->inst + p->imms;
-    iv *v = scratch->val, *next = v + p->imms;
+    struct inst const *inst = p->inst;
+    iv *v = scratch->val, *next = v;
     goto *dispatch[inst->op];
 
+    imm: *next++ = as_iv( inst->imm);                   inst++; goto *dispatch[inst->op];
     uni: *next++ = as_iv(*inst->ptr);                   inst++; goto *dispatch[inst->op];
     opx: *next++ = x;                                   inst++; goto *dispatch[inst->op];
     opy: *next++ = y;                                   inst++; goto *dispatch[inst->op];
@@ -221,7 +218,6 @@ struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
         if (imm == (binst->op == IMM)) {
-            p->imms += (binst->op == IMM);
             p->inst[ix] = *binst;
             if (uses_lhs(binst)) { p->inst[ix].lhs = new_index[binst->lhs]; }
             if (uses_rhs(binst)) { p->inst[ix].rhs = new_index[binst->rhs]; }
