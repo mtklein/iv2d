@@ -270,13 +270,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
     }
 
-    float W = (float)w,
-          H = (float)h;
     static struct iv2d_region const *prospero = NULL;
-    if (prospero == NULL) {
-        prospero = prospero_region(&W,&H);
-    }
-
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -291,8 +285,13 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
         {prospero,           "prospero"  },
     };
     int const slide = wrap(app->slide, len(slides));
-
     struct iv2d_region const *region = slides[slide].region;
+
+    float W = (float)w,
+          H = (float)h;
+    if (prospero == NULL && 0 == strcmp(slides[slide].name, "prospero")) {
+        region = prospero = prospero_region(&W,&H);
+    }
 
     struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
     if (app->stroke) {
