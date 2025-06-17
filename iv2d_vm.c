@@ -4,13 +4,7 @@
 #include <string.h>
 
 struct inst {
-    union {
-        struct {
-            _Bool spill                                                    :  1;
-            enum { X,Y,IMM,UNI,RET,ABS,SQT,SQR,INV,ADD,SUB,MUL,MIN,MAX} op : 31;
-        };
-        int op_and_spill;
-    };
+    enum { IMM,UNI,X,Y,RET,ABS,SQT,SQR,INV,ADD,SUB,MUL,MIN,MAX} op;
     int rhs;
     union {
         int          lhs;
@@ -157,12 +151,12 @@ int iv2d_mad(builder *b, int x, int y, int z) { return iv2d_add(b, iv2d_mul(b, x
 
 struct program {
     struct iv2d_region region;
-    int         spills, padding;
+    int         vals, padding;
     struct inst inst[];
 };
 
 struct scratch {
-    int len, padding[3];
+    int vals, padding[3];
     iv  val[];
 };
 
@@ -170,108 +164,68 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
     _Thread_local static struct scratch *scratch = NULL;
-    if (scratch == NULL || scratch->len < p->spills) {
-        scratch = realloc(scratch, sizeof *scratch + (size_t)p->spills * sizeof *scratch->val);
-        scratch->len = p->spills;
+    if (scratch == NULL || scratch->vals < p->vals) {
+        scratch = realloc(scratch, sizeof *scratch + (size_t)p->vals * sizeof *scratch->val);
+        scratch->vals = p->vals;
     }
 
     static void* const dispatch[] = {
-        &&opx, &&opx_,
-        &&opy, &&opy_,
-        &&imm, &&imm_,
-        &&uni, &&uni_,
-        &&ret, &&ret_,
-        &&abs, &&abs_,
-        &&sqt, &&sqt_,
-        &&sqr, &&sqr_,
-        &&inv, &&inv_,
-        &&add, &&add_,
-        &&sub, &&sub_,
-        &&mul, &&mul_,
-        &&min, &&min_,
-        &&max, &&max_,
+        &&imm,
+        &&uni,
+        &&opx,
+        &&opy,
+        &&ret,
+        &&abs,
+        &&sqt,
+        &&sqr,
+        &&inv,
+        &&add,
+        &&sub,
+        &&mul,
+        &&min,
+        &&max,
     };
-    #define loop goto *dispatch[inst->op_and_spill]
-    #define spill (*spill_slot++ = rhs, rhs = v[inst->rhs])
-    iv *v = scratch->val, *spill_slot = v, rhs = as_iv(0);
     struct inst const *inst = p->inst;
-    loop;
+    iv *v = scratch->val, *next = v;
+    goto *dispatch[inst->op];
 
-    opx_: spill;  opx: rhs = x;                          inst++; loop;
-    opy_: spill;  opy: rhs = y;                          inst++; loop;
-    imm_: spill;  imm: rhs = as_iv( inst->imm);          inst++; loop;
-    uni_: spill;  uni: rhs = as_iv(*inst->ptr);          inst++; loop;
-    abs_: spill;  abs: rhs = iv_abs(              rhs);  inst++; loop;
-    sqt_: spill;  sqt: rhs = iv_sqrt(             rhs);  inst++; loop;
-    sqr_: spill;  sqr: rhs = iv_square(           rhs);  inst++; loop;
-    inv_: spill;  inv: rhs = iv_inv(              rhs);  inst++; loop;
-    add_: spill;  add: rhs = iv_add(v[inst->lhs], rhs);  inst++; loop;
-    sub_: spill;  sub: rhs = iv_sub(v[inst->lhs], rhs);  inst++; loop;
-    mul_: spill;  mul: rhs = iv_mul(v[inst->lhs], rhs);  inst++; loop;
-    min_: spill;  min: rhs = iv_min(v[inst->lhs], rhs);  inst++; loop;
-    max_: spill;  max: rhs = iv_max(v[inst->lhs], rhs);  inst++; loop;
-
-    ret_: rhs = v[inst->rhs]; ret: return rhs;
-    #undef loop
-    #undef spill
+    imm: *next++ = as_iv( inst->imm);                   inst++; goto *dispatch[inst->op];
+    uni: *next++ = as_iv(*inst->ptr);                   inst++; goto *dispatch[inst->op];
+    opx: *next++ = x;                                   inst++; goto *dispatch[inst->op];
+    opy: *next++ = y;                                   inst++; goto *dispatch[inst->op];
+    abs: *next++ = iv_abs(              v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    sqt: *next++ = iv_sqrt(             v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    sqr: *next++ = iv_square(           v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    inv: *next++ = iv_inv(              v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    add: *next++ = iv_add(v[inst->lhs], v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    sub: *next++ = iv_sub(v[inst->lhs], v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    mul: *next++ = iv_mul(v[inst->lhs], v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    min: *next++ = iv_min(v[inst->lhs], v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    max: *next++ = iv_max(v[inst->lhs], v[inst->rhs]);  inst++; goto *dispatch[inst->op];
+    ret: return v[inst->rhs];
 }
 
-static void hoist_imm(builder *b) {
-    int         *new_index = calloc((size_t)b->insts, sizeof *new_index);
-    struct inst *reordered = calloc((size_t)b->insts, sizeof *reordered);
+struct iv2d_region const* iv2d_ret(builder *b, int ret) {
+    push(b, (struct inst){.op=RET, .rhs=ret});
+
+    int *new_index = calloc((size_t)b->insts, sizeof *new_index);
+
+    struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
+    *p = (struct program){.region={run_program}, .vals=b->insts-1};
 
     int ix = 0;
     for (int imm = 2; imm --> 0;)
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
         if (imm == (binst->op == IMM)) {
-            reordered[ix] = *binst;
-            if (uses_lhs(binst)) { reordered[ix].lhs = new_index[binst->lhs]; }
-            if (uses_rhs(binst)) { reordered[ix].rhs = new_index[binst->rhs]; }
+            p->inst[ix] = *binst;
+            if (uses_lhs(binst)) { p->inst[ix].lhs = new_index[binst->lhs]; }
+            if (uses_rhs(binst)) { p->inst[ix].rhs = new_index[binst->rhs]; }
             new_index[i] = ix++;
         }
     }
 
     free(new_index);
-    free(b->inst);
-    b->inst = reordered;
-}
-
-struct iv2d_region const* iv2d_ret(builder *b, int ret) {
-    push(b, (struct inst){.op=RET, .rhs=ret});
-
-    hoist_imm(b);
-
-    struct { int last_use, spill_slot; } *value = calloc((size_t)b->insts, sizeof *value);
-
-    for (int i = 0; i < b->insts; i++) {
-        struct inst const *binst = b->inst+i;
-        if (uses_lhs(binst)) { value[binst->lhs].last_use = i; }
-        if (uses_rhs(binst)) { value[binst->rhs].last_use = i; }
-    }
-
-    struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
-    *p = (struct program){.region={run_program}};
-
-    for (int i = 0; i < b->insts; i++) {
-        struct inst const *binst = b->inst+i;
-
-        _Bool const spill = (i > 0)
-                         && (value[i-1].last_use > i || (uses_lhs(binst) && binst->lhs == i-1));
-        if (spill) {
-            value[i-1].spill_slot = p->spills++;
-        }
-
-        p->inst[i] = (struct inst){
-            .op    = binst->op,
-            .spill = spill,
-            .rhs   = value[binst->rhs].spill_slot,
-            .ptr   = binst->ptr,
-        };
-        if (uses_lhs(binst)) { p->inst[i].lhs = value[binst->lhs].spill_slot; }
-    }
-
-    free(value);
     free(b->dedup.slot);
     free(b->inst);
     free(b);
