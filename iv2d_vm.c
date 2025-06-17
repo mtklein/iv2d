@@ -58,25 +58,20 @@ struct program {
     struct inst inst[];
 };
 
-struct scratch {
-    struct program const *active_program;
-    void                 *padding;
-    iv                    val[];
-};
-
 static iv run_program(struct iv2d_region const *region, iv x, iv y) {
     struct program const *p = (struct program const*)region;
 
-    _Thread_local static struct scratch *scratch = NULL;
-    if (scratch == NULL || scratch->active_program != p) {
-        scratch = realloc(scratch, sizeof *scratch + (size_t)p->vals * sizeof *scratch->val);
+    _Thread_local static struct program const *active_program;
+    _Thread_local static iv *v;
+    if (active_program != p) {
+        active_program  = p;
+        v = realloc(v, (size_t)p->vals * sizeof *v);
         for (int i = 0; i < p->imms; i++) {
-            scratch->val[i] = as_iv(p->inst[i].imm);
+            v[i] = as_iv(p->inst[i].imm);
         }
-        scratch->active_program = p;
     }
 
-    iv *v = scratch->val, *next = v+p->imms;
+    iv *next = v+p->imms;
     for (struct inst const *inst = p->inst+p->imms; ; inst++) {
         #pragma clang diagnostic ignored "-Wswitch-default"
         switch (inst->op) {
@@ -103,17 +98,16 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
 struct iv2d_region const* iv2d_ret(builder *b, int ret) {
     push(b, (struct inst){.op=RET, .rhs=ret});
 
-    int *index = calloc((size_t)b->insts, sizeof *index);
-
     struct program *p = malloc(sizeof *p + (size_t)b->insts * sizeof *p->inst);
     *p = (struct program){.region={run_program}};
 
+    int *index = calloc((size_t)b->insts, sizeof *index);
     for (int imm = 2; imm --> 0;)
     for (int i = 0; i < b->insts; i++) {
         struct inst const *binst = b->inst+i;
+        struct inst       *pinst = p->inst+p->vals;
         if (imm == (binst->op == IMM)) {
             p->imms += (binst->op == IMM);
-            struct inst *pinst = p->inst+p->vals;
             *pinst = *binst;
             pinst->lhs = index[binst->lhs];
             pinst->rhs = index[binst->rhs];
