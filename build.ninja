@@ -16,7 +16,7 @@ rule compile
     deps    = gcc
 
 rule link
-    command = $cc $in $flags -o $out
+    command = $cc $in -lm $flags -o $out
 
 rule run
     command = ./$in $args > $out
@@ -35,7 +35,6 @@ build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
 build out/iv2d_vm_test.ok: run  out/iv2d_vm_test
 build out/iv2d_regions_test.o: compile iv2d_regions_test.c
 build out/iv2d_regions_test:   link out/iv2d_regions_test.o out/iv2d.o out/iv2d_regions.o
-    flags = -lm
 build out/iv2d_regions_test.ok: run out/iv2d_regions_test
 
 build out/stb_image_write.o: compile stb_image_write.c
@@ -48,7 +47,7 @@ build out/demo: link out/demo.o out/iv2d.o $
                                 out/iv2d_vm.o $
                                 out/prospero.o $
                                 out/stb_image_write.o
-    flags = -L/opt/homebrew/lib -lSDL2 -lm
+    flags = -L/opt/homebrew/lib -lSDL2
 
 build gold/slim_difference-0.png: run out/demo
     args = p 2 600x402
