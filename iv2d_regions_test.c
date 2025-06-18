@@ -15,13 +15,14 @@ static void record(void *arg, float l,float t,float r,float b,float cov) {
 
 static void test_circle(void) {
     struct iv2d_circle c = {.region={iv2d_circle}, 0,0,1};
+
     iv v = c.region.eval(&c.region, as_iv(0), as_iv(0));
     expect(equiv(v.lo[0], -1));
     expect(equiv(v.hi[0], -1));
 
-    v = c.region.eval(&c.region, as_iv(1), as_iv(0));
-    expect(equiv(v.lo[0], 0));
-    expect(equiv(v.hi[0], 0));
+    v = c.region.eval(&c.region, as_iv(1.5f), as_iv(0));
+    expect(equiv(v.lo[0], 0.5f));
+    expect(equiv(v.hi[0], 0.5f));
 }
 
 static void test_union(void) {
@@ -34,25 +35,25 @@ static void test_union(void) {
     expect(equiv(v.lo[0], -1));
     expect(equiv(v.hi[0], -1));
 
-    v = u.region.eval(&u.region, as_iv(1), as_iv(0));
-    expect(equiv(v.lo[0], 0));
-    expect(equiv(v.hi[0], 0));
+    v = u.region.eval(&u.region, as_iv(1.5f), as_iv(0));
+    expect(equiv(v.lo[0], -0.5f));
+    expect(equiv(v.hi[0], -0.5f));
 }
 
 static void test_cover(void) {
     struct iv2d_circle big = {.region={iv2d_circle}, 0,0,10};
     struct cover_ctx ctx = {0};
-    iv2d_cover(&big.region, -1,-1,1,1, 0, record,&ctx);
+    iv2d_cover(&big.region, 0,0,2,2, 0, record,&ctx);
     expect(ctx.calls == 1);
-    expect(equiv(ctx.l,-1));
-    expect(equiv(ctx.t,-1));
-    expect(equiv(ctx.r, 1));
-    expect(equiv(ctx.b, 1));
+    expect(equiv(ctx.l,0));
+    expect(equiv(ctx.t,0));
+    expect(equiv(ctx.r,2));
+    expect(equiv(ctx.b,2));
     expect(equiv(ctx.cov,1));
 
     struct iv2d_circle far = {.region={iv2d_circle}, 5,0,1};
     ctx.calls = 0;
-    iv2d_cover(&far.region, -1,-1,1,1, 0, record,&ctx);
+    iv2d_cover(&far.region, 0,0,2,2, 0, record,&ctx);
     expect(ctx.calls == 0);
 }
 
