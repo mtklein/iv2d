@@ -27,6 +27,7 @@ build out/iv_test.ok: run  out/iv_test
 
 build out/iv2d.o:         compile iv2d.c
 build out/iv2d_regions.o: compile iv2d_regions.c
+build out/prospero.o:     compile prospero.c
 
 build out/iv2d_vm.o:       compile  iv2d_vm.c
 build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
@@ -59,6 +60,15 @@ build out/test:  link out/test.o $
                       out/ngon.o $
                       out/stb_image_write.o $
                       out/vm_union.o
+
+build out/demo.o: compile demo.c
+    flags = -isystem /opt/homebrew/include
+build out/demo: link out/demo.o out/iv2d.o $
+                               out/iv2d_regions.o $
+                               out/iv2d_vm.o $
+                               out/prospero.o $
+                               out/stb_image_write.o
+    flags = -L/opt/homebrew/lib -lSDL3
 
 
 build gold/slim_difference-0.png: run out/test
