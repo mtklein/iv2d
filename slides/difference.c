@@ -2,7 +2,6 @@
 #include "slides.h"
 #include <math.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 extern struct slide difference_slide;
 
@@ -29,8 +28,4 @@ static struct iv2d_region const* create(float w, float h, float t) {
     return &d->op.region;
 }
 
-static void cleanup(struct iv2d_region const *region) {
-    free((void*)(uintptr_t)region);
-}
-
-struct slide difference_slide = {"difference", create, cleanup};
+struct slide difference_slide = {"difference", create};

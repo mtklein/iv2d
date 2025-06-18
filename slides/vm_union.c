@@ -1,7 +1,6 @@
 #include "../iv2d_vm.h"
 #include "slides.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <math.h>
 
 static struct iv2d_region const* create(float w, float h, float t) {
@@ -29,9 +28,5 @@ static struct iv2d_region const* create(float w, float h, float t) {
     return iv2d_ret(b, iv2d_min(b, center_circle, orbit_circle));
 }
 
-static void cleanup(struct iv2d_region const *p) {
-    free((void*)(uintptr_t)p);
-}
-
 extern struct slide vm_union;
-struct slide vm_union = { "vm_union", create, cleanup };
+struct slide vm_union = { "vm_union", create };

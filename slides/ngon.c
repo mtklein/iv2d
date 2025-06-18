@@ -2,7 +2,6 @@
 #include "slides.h"
 #include <math.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 extern struct slide ngon_slide;
 
@@ -43,8 +42,4 @@ static struct iv2d_region const* create(float w, float h, float t) {
     return &d->op.region;
 }
 
-static void cleanup(struct iv2d_region const *region) {
-    free((void*)(uintptr_t)region);
-}
-
-struct slide ngon_slide = {"ngon", create, cleanup};
+struct slide ngon_slide = {"ngon", create};
