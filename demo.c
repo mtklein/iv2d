@@ -4,7 +4,7 @@
 #include "iv2d_regions.h"
 #include "iv2d_vm.h"
 #include "len.h"
-#include "prospero.h"
+#include "slide.h"
 #include "stb/stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -112,23 +112,6 @@ static void queue_rect(void *arg, float l, float t, float r, float b, float cov)
     }};
 }
 
-static struct iv2d_halfplane halfplane_from(float x0, float y0, float x1, float y1) {
-    float const dx = x1 - x0,
-                dy = y1 - y0,
-              norm = 1 / sqrtf(dx*dx + dy*dy),
-                nx = +dy*norm,
-                ny = -dx*norm,
-                 d = nx*x0 + ny*y0;
-    return (struct iv2d_halfplane){.region={iv2d_halfplane}, nx,ny,d};
-}
-
-static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], int n,
-                                              struct iv2d_region const *region[]) {
-    for (int i = 0; i < n; i++) {
-        region[i] = &hp[i].region;
-    }
-    return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
-}
 
 SDL_AppResult SDL_AppInit(void **ctx, int argc, char *argv[]) {
     struct app *app = *ctx = SDL_calloc(1, sizeof *app);
@@ -212,86 +195,9 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     int w,h;
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
-    float const cx = 0.5f * (float)w,
-                cy = 0.5f * (float)h,
-                cr = 0.5f*fminf(cx,cy),
-                th = (float)app->time,
-                ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
-                oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
-
-    struct iv2d_circle const center = {.region={iv2d_circle}, cx, cy, cr},
-                             orbit  = {.region={iv2d_circle}, ox, oy, 100};
-    struct iv2d_invert const invorb = {.region={iv2d_invert}, &orbit.region};
-
-    struct iv2d_region const *center_orbit [] = {&center.region, & orbit.region},
-                             *center_invorb[] = {&center.region, &invorb.region};
-    struct iv2d_setop const
-        union_     = {.region={iv2d_union    }, center_orbit , len(center_orbit )},
-        intersect  = {.region={iv2d_intersect}, center_orbit , len(center_orbit )},
-        difference = {.region={iv2d_intersect}, center_invorb, len(center_invorb)};
-
-    struct iv2d_capsule capsule = {.region={iv2d_capsule}, ox,oy, cx,cy, 4};
-
-    struct iv2d_halfplane halfplane = halfplane_from(ox,oy, cx,cy);
-
-    struct iv2d_halfplane hp[7];
-    for (int i = 0; i < len(hp); i++) {
-        double const pi = atan(1)*4;
-        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i  ) * 2*pi/len(hp)),
-                               cx + 100 * (float)cos(app->time + (i+1) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i+1) * 2*pi/len(hp)));
-    }
-    struct iv2d_region const *ngon_region[len(hp)];
-    struct iv2d_setop ngon = intersect_halfplanes(hp, len(hp), ngon_region);
-
-    char ngon_name[128];
-    snprintf(ngon_name, sizeof ngon_name, "%d-gon", len(hp));
-
-    __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region const *vm_union;
-    {
-        struct iv2d_builder *b = iv2d_builder();
-
-        int center_circle;
-        {
-            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&cx))),
-                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&cy))),
-                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
-            center_circle = iv2d_sub(b, len, iv2d_uni(b,&cr));
-        }
-        int orbit_circle;
-        {
-            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&ox))),
-                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&oy))),
-                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
-            orbit_circle  = iv2d_sub(b, len, iv2d_imm(b,100));
-        }
-        vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
-    }
-
-    static struct iv2d_region const *prospero = NULL;
-    struct {
-        struct iv2d_region const *region;
-        char const               *name;
-    } slides[] = {
-        {&union_    .region, "union"     },
-        {&intersect .region, "intersect" },
-        {&difference.region, "difference"},
-        {&capsule   .region, "capsule"   },
-        {&halfplane .region, "halfplane" },
-        {&ngon      .region,  ngon_name  },
-        {vm_union,           "vm union"  },
-        {prospero,           "prospero"  },
-    };
-    int const slide = wrap(app->slide, len(slides));
-    struct iv2d_region const *region = slides[slide].region;
-
-    float W = (float)w,
-          H = (float)h;
-    if (prospero == NULL && 0 == strcmp(slides[slide].name, "prospero")) {
-        region = prospero = prospero_region(&W,&H);
-    }
+    int const slide = wrap(app->slide, slide_count);
+    struct slide *desc = slides[slide];
+    struct iv2d_region const *region = slide_region(desc, (float)w, (float)h, app->time);
 
     struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
     if (app->stroke) {
@@ -341,7 +247,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
             "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0fµs",
-            slides[slide].name, slide, w,h, app->quality, app->full, app->quads - app->full,
+            desc->name, slide, w,h, app->quality, app->full, app->quads - app->full,
             app->write_png ? 0 : 1e6 * avg_frametime);
 
     if (app->write_png) {

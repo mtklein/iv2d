@@ -29,6 +29,16 @@ build out/iv2d.o:         compile iv2d.c
 build out/iv2d_regions.o: compile iv2d_regions.c
 build out/prospero.o:     compile prospero.c
 
+build out/slides/union.o:        compile slides/union.c
+build out/slides/intersect.o:    compile slides/intersect.c
+build out/slides/difference.o:   compile slides/difference.c
+build out/slides/capsule.o:      compile slides/capsule.c
+build out/slides/halfplane.o:    compile slides/halfplane.c
+build out/slides/ngon.o:         compile slides/ngon.c
+build out/slides/vm_union.o:     compile slides/vm_union.c
+build out/slides/prospero_slide.o: compile slides/prospero_slide.c
+build out/slides/list.o:         compile slides/list.c
+
 build out/iv2d_vm.o:       compile  iv2d_vm.c
 build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
 build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
@@ -43,6 +53,15 @@ build out/demo: link out/demo.o out/iv2d.o $
                                 out/iv2d_regions.o $
                                 out/iv2d_vm.o $
                                 out/prospero.o $
+                                out/slides/union.o $
+                                out/slides/intersect.o $
+                                out/slides/difference.o $
+                                out/slides/capsule.o $
+                                out/slides/halfplane.o $
+                                out/slides/ngon.o $
+                                out/slides/vm_union.o $
+                                out/slides/prospero_slide.o $
+                                out/slides/list.o $
                                 out/stb_image_write.o
     flags = -L/opt/homebrew/lib -lSDL3
 
