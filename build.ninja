@@ -1,8 +1,9 @@
 builddir = out
 
-cc   = /opt/homebrew/opt/llvm/bin/clang
+cc   = clang
 warn = -Weverything $
     -Wno-declaration-after-statement $
+    -Wno-poison-system-directories $
     -Wno-pre-c11-compat $
     -Wno-pre-c23-compat $
     -Wno-unsafe-buffer-usage $
@@ -15,7 +16,7 @@ rule compile
     deps    = gcc
 
 rule link
-    command = $cc -dead_strip $in $flags -o $out
+    command = $cc $in $flags -o $out
 
 rule run
     command = ./$in $args > $out
