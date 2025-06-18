@@ -136,11 +136,11 @@ static _Bool frame(struct app *app) {
     }
 
     SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(app->renderer, 255, 255, 255, 255);
-    SDL_RenderClear(app->renderer);
+    SDL_SetRenderDrawColor    (app->renderer, 255,255,255,255);
+    SDL_RenderClear           (app->renderer);
 
     int w,h;
-    SDL_GetRendererOutputSize(app->renderer, &w, &h);
+    SDL_GetRendererOutputSize(app->renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h,
@@ -265,10 +265,8 @@ static _Bool frame(struct app *app) {
         }
         SDL_FRect const bounds = {l,t,r-l,b-t};
         SDL_SetRenderDrawColor(app->renderer, 255,0,0,31);
-        SDL_RenderDrawRectF(app->renderer, &bounds);
+        SDL_RenderDrawRectF   (app->renderer, &bounds);
     }
-
-    SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
 
     if (app->window) {
         char title[256];
@@ -281,12 +279,10 @@ static _Bool frame(struct app *app) {
     }
 
     if (app->write_png) {
-        SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(
-                                0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
-        SDL_RenderReadPixels(app->renderer, NULL, SDL_PIXELFORMAT_RGBA32,
-                             rgba->pixels, rgba->pitch);
-        stbi_write_png_to_func(write_to_stdout, NULL,
-                               rgba->w, rgba->h, 4, rgba->pixels, rgba->pitch);
+        SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32);
+        SDL_RenderReadPixels(app->renderer, NULL,
+                             SDL_PIXELFORMAT_RGBA32, rgba->pixels, rgba->pitch);
+        stbi_write_png_to_func(write_to_stdout, NULL, w,h,4, rgba->pixels, rgba->pitch);
         SDL_FreeSurface(rgba);
         return 1;
     }
@@ -316,14 +312,13 @@ int main(int argc, char* argv[]) {
     } else {
          if (0 > SDL_Init(SDL_INIT_VIDEO) ||
              0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
-                                         &app->window, &app->renderer)) {
+                                             &app->window, &app->renderer)) {
             SDL_free(app);
             SDL_Quit();
             return 1;
         }
         SDL_SetWindowPosition(app->window, 0,0);
     }
-    SDL_RenderSetVSync(app->renderer, 1);
 
     for (_Bool done = 0; !done;) {
         for (SDL_Event event; SDL_PollEvent(&event);) {
