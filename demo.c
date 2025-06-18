@@ -5,7 +5,7 @@
 #include "iv2d_vm.h"
 #include "len.h"
 #include "prospero.h"
-#include "stb/stb_image_write.h"
+#include "stb_image_write.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <math.h>
