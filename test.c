@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-static void write_to_stdout(void *ctx, void *buf, int len) {
+static void write_to_stdout(void *ctx, const void *buf, int len) {
     (void)ctx;
     fwrite(buf, 1, (size_t)len, stdout);
 }
@@ -17,15 +17,12 @@ struct image {
     float *px; // RGBA as floats
 };
 
-static int floor_i(float v) { float f = floorf(v); return (int)f; }
-static int ceil_i (float v) { float f = ceilf(v);  return (int)f; }
-
 static void blend_rect(void *ctx, float l, float t, float r, float b, float cov) {
     struct image *img = ctx;
-    int x0 = l < 0 ? 0 : floor_i(l);
-    int y0 = t < 0 ? 0 : floor_i(t);
-    int x1 = r > (float)img->w ? img->w : ceil_i(r);
-    int y1 = b > (float)img->h ? img->h : ceil_i(b);
+    int x0 = (int)l;
+    int y0 = (int)t;
+    int x1 = (int)r;
+    int y1 = (int)b;
     float a = cov;
     float c = 0.5f * a;
     for (int y = y0; y < y1; y++)
@@ -82,8 +79,6 @@ int main(int argc, char **argv) {
     for (int i=0; i<w*h; i++) {
         for (int c=0; c<4; c++) {
             float v = img.px[4*i+c];
-            if (v < 0) v = 0;
-            if (v > 1) v = 1;
             pixels[4*i+c] = (unsigned char)lrintf(255 * v);
         }
     }
