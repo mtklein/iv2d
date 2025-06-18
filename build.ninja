@@ -33,6 +33,10 @@ build out/iv2d_vm.o:       compile  iv2d_vm.c
 build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
 build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
 build out/iv2d_vm_test.ok: run  out/iv2d_vm_test
+build out/iv2d_regions_test.o: compile iv2d_regions_test.c
+build out/iv2d_regions_test:   link out/iv2d_regions_test.o out/iv2d.o out/iv2d_regions.o
+    flags = -lm
+build out/iv2d_regions_test.ok: run out/iv2d_regions_test
 
 build out/stb_image_write.o: compile stb_image_write.c
     flags = -fno-sanitize=integer
