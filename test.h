@@ -5,7 +5,8 @@ int dprintf(int, char const*, ...);
                             __builtin_debugtrap()
 
 static inline __attribute__((overloadable)) _Bool equiv(float x, float y) {
-    return (x <= y && y <= x) || (x != x && y != y);
+    return (x <= y && y <= x)
+        || (x != x && y != y);
 }
 
 static inline __attribute__((overloadable)) _Bool equiv(_Float16 x, _Float16 y) {

@@ -3,8 +3,8 @@
 typedef float __attribute__((vector_size(16))) float4;
 typedef   int __attribute__((vector_size(16)))   int4;
 
-typedef _Float16 __attribute__((vector_size(8))) float4h;
-typedef short    __attribute__((vector_size(8)))  int4h;
+typedef _Float16 __attribute__((vector_size(8))) half4;
+typedef short    __attribute__((vector_size(8))) short4;
 
 static inline float4 if_then_else(int4 mask, float4 t, float4 e) {
     return (float4)( ( mask & (int4)t)
@@ -98,23 +98,23 @@ static inline iv iv_inv(iv x) {
     };
 }
 
-static inline float4h if_then_else16(int4h mask, float4h t, float4h e) {
-    return (float4h)( (mask & (int4h)t)
-                    | (~mask & (int4h)e) );
+static inline half4 if_then_else16(short4 mask, half4 t, half4 e) {
+    return (half4)( ( mask & (short4)t)
+                  | (~mask & (short4)e) );
 }
 
-static inline float4h when16(int4h mask, float4h v) {
-    return if_then_else16(mask, v, (float4h){0});
+static inline half4 when16(short4 mask, half4 v) {
+    return if_then_else16(mask, v, (half4){0});
 }
 
 typedef struct {
-    float4h lo, hi;
+    half4 lo, hi;
 } iv16;
 
 static inline iv16 as_iv16(_Float16 x) {
     return (iv16){
-        (float4h){x,x,x,x},
-        (float4h){x,x,x,x},
+        (half4){x,x,x,x},
+        (half4){x,x,x,x},
     };
 }
 
@@ -133,10 +133,10 @@ static inline iv16 iv16_sub(iv16 x, iv16 y) {
 }
 
 static inline iv16 iv16_mul(iv16 x, iv16 y) {
-    float4h const a = x.lo * y.lo,
-                   b = x.hi * y.lo,
-                   c = x.lo * y.hi,
-                   d = x.hi * y.hi;
+    half4 const a = x.lo * y.lo,
+                 b = x.hi * y.lo,
+                 c = x.lo * y.hi,
+                 d = x.hi * y.hi;
     return (iv16){
         __builtin_elementwise_min(__builtin_elementwise_min(a,b),
                                   __builtin_elementwise_min(c,d)),
@@ -171,30 +171,28 @@ static inline iv16 iv16_sqrt(iv16 x) {
 }
 
 static inline iv16 iv16_square(iv16 x) {
-    float4h const a2 = x.lo * x.lo,
-                   b2 = x.hi * x.hi;
+    half4 const a2 = x.lo * x.lo,
+                 b2 = x.hi * x.hi;
     return (iv16){
-        when16(x.lo > 0 | x.hi < 0,
-               __builtin_elementwise_min(a2,b2)),
-                                      __builtin_elementwise_max(a2,b2),
+        when16(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a2,b2)),
+                                  __builtin_elementwise_max(a2,b2) ,
     };
 }
 
 static inline iv16 iv16_abs(iv16 x) {
-    float4h const a = __builtin_elementwise_abs(x.lo),
-                   b = __builtin_elementwise_abs(x.hi);
+    half4 const a = __builtin_elementwise_abs(x.lo),
+                 b = __builtin_elementwise_abs(x.hi);
     return (iv16){
-        when16(x.lo > 0 | x.hi < 0,
-               __builtin_elementwise_min(a,b)),
-                                      __builtin_elementwise_max(a,b),
+        when16(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a,b)),
+                                  __builtin_elementwise_max(a,b) ,
     };
 }
 
 static inline iv16 iv16_inv(iv16 x) {
     return (iv16){
         if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo >= 0 & x.hi > 0),
-                       1/x.hi, (float4h){0} - 1/0.0f),
+                       1/x.hi, (half4){0} - 1/0.0f),
         if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0),
-                       1/x.lo, (float4h){0} + 1/0.0f),
+                       1/x.lo, (half4){0} + 1/0.0f),
     };
 }
