@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-#include <unistd.h>
 int dprintf(int, const char*, ...);
 
 #define expect(x) if (!(x)) dprintf(2, "%s:%d %s expect(%s)\n", __FILE__, __LINE__, __func__, #x), \
