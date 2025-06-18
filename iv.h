@@ -134,9 +134,9 @@ static inline iv16 iv16_sub(iv16 x, iv16 y) {
 
 static inline iv16 iv16_mul(iv16 x, iv16 y) {
     half4 const a = x.lo * y.lo,
-                 b = x.hi * y.lo,
-                 c = x.lo * y.hi,
-                 d = x.hi * y.hi;
+                b = x.hi * y.lo,
+                c = x.lo * y.hi,
+                d = x.hi * y.hi;
     return (iv16){
         __builtin_elementwise_min(__builtin_elementwise_min(a,b),
                                   __builtin_elementwise_min(c,d)),
@@ -172,27 +172,25 @@ static inline iv16 iv16_sqrt(iv16 x) {
 
 static inline iv16 iv16_square(iv16 x) {
     half4 const a2 = x.lo * x.lo,
-                 b2 = x.hi * x.hi;
+                b2 = x.hi * x.hi;
     return (iv16){
         when16(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a2,b2)),
-                                  __builtin_elementwise_max(a2,b2) ,
+                                    __builtin_elementwise_max(a2,b2) ,
     };
 }
 
 static inline iv16 iv16_abs(iv16 x) {
     half4 const a = __builtin_elementwise_abs(x.lo),
-                 b = __builtin_elementwise_abs(x.hi);
+                b = __builtin_elementwise_abs(x.hi);
     return (iv16){
         when16(x.lo > 0 | x.hi < 0, __builtin_elementwise_min(a,b)),
-                                  __builtin_elementwise_max(a,b) ,
+                                    __builtin_elementwise_max(a,b) ,
     };
 }
 
 static inline iv16 iv16_inv(iv16 x) {
     return (iv16){
-        if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo >= 0 & x.hi > 0),
-                       1/x.hi, (half4){0} - 1/0.0f),
-        if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0),
-                       1/x.lo, (half4){0} + 1/0.0f),
+        if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo >= 0 & x.hi > 0), 1/x.hi, (half4){0} - 1/0.0f),
+        if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0), 1/x.lo, (half4){0} + 1/0.0f),
     };
 }
