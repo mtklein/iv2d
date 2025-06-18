@@ -34,11 +34,19 @@ build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
 build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
 build out/iv2d_vm_test.ok: run  out/iv2d_vm_test
 
+build out/slides.o:   compile slides/slides.c
+build out/vm_union.o: compile slides/vm_union.c
+
 build out/stb_image_write.o: compile stb_image_write.c
     flags = -fno-sanitize=integer
 
 build out/test.o: compile test.c
-build out/test:   link out/test.o out/iv2d.o out/iv2d_vm.o out/stb_image_write.o
+build out/test:  link out/test.o $
+                      out/iv2d.o $
+                      out/iv2d_vm.o $
+                      out/slides.o $
+                      out/stb_image_write.o $
+                      out/vm_union.o
 
 build out/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
@@ -95,10 +103,10 @@ build gold/union-5.png: run out/demo
     args = p 0 800x600 +++++
 
 build gold/vm-union-0.png: run out/test
-    args = 800x600
+    args = 800x600 0
 build gold/vm-union-1.png: run out/test
-    args = 800x600 +
+    args = 800x600 0 +
 build gold/vm-union-3.png: run out/test
-    args = 800x600 +++
+    args = 800x600 0 +++
 build gold/vm-union-5.png: run out/test
-    args = 800x600 +++++
+    args = 800x600 0 +++++
