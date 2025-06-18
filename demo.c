@@ -7,6 +7,7 @@
 #include "stb/stb_image_write.h"
 #include <SDL2/SDL.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 
 static int wrap(int x, int n) {
@@ -23,7 +24,7 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 //   - tiger
 
 struct quad {
-    struct { float x, y; SDL_Color c; } vertex[6];
+    struct { float x,y; SDL_Color c; } vertex[6];
 };
 
 struct app {
@@ -103,12 +104,7 @@ static void queue_rect(void *arg, float l, float t, float r, float b, float cov)
         app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
         app->quad = SDL_realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
     }
-    SDL_Color const c = {
-        (Uint8)(0.5f * 255.0f),
-        (Uint8)(0.5f * 255.0f),
-        (Uint8)(0.5f * 255.0f),
-        (Uint8)(cov  * 255.0f)
-    };
+    SDL_Color const c = {127,127,127, (uint8_t)(cov*255)};
     app->quad[app->quads++] = (struct quad) {{
         {l,t,c}, {r,t,c}, {l,b,c},
         {r,t,c}, {r,b,c}, {l,b,c},
@@ -133,77 +129,7 @@ static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], 
     return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
 }
 
-static int app_init(struct app **ctx, int argc, char *argv[]) {
-    struct app *app = *ctx = SDL_calloc(1, sizeof *app);
-    app->start_time = now();
-
-    int w=800, h=600;
-    for (int i = 1; i < argc; i++) {
-        int W,H;
-        if (2 == sscanf(argv[i], "%dx%d", &W, &H)) {
-            w = W;
-            h = H;
-            continue;
-        }
-        if (handle_keys(app, argv[i])) {
-            return 1;
-        }
-    }
-
-    if (app->write_png) {
-        app->renderer = SDL_CreateSoftwareRenderer(
-                            SDL_CreateRGBSurfaceWithFormat(0, w, h, 32,
-                                                           SDL_PIXELFORMAT_RGBA32));
-    } else {
-         if (SDL_Init(SDL_INIT_VIDEO) < 0 ||
-             SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
-                                        &app->window, &app->renderer) < 0) {
-            SDL_free(app);
-            SDL_Quit();
-            return -1;
-        }
-        SDL_SetWindowTitle(app->window, "iv2d demo");
-        SDL_SetWindowPosition(app->window, 0,0);
-    }
-    SDL_RenderSetVSync(app->renderer, 1);
-    return 0;
-}
-
-static void app_quit(struct app *app) {
-
-    SDL_DestroyRenderer(app->renderer);
-    SDL_DestroyWindow  (app->window);
-    SDL_free(app->quad);
-    SDL_free(app);
-    SDL_Quit();
-}
-
-static int app_event(struct app *app, SDL_Event *event) {
-    switch (event->type) {
-        default: break;
-
-        case SDL_QUIT:
-            return 1;
-
-        case SDL_KEYDOWN:
-            if (!event->key.repeat) {  // TODO: getting spurious repeats with emcc.
-                reset_frametimes(app);
-                if (handle_keys(app, (char const[]){(char)event->key.keysym.sym,0})) {
-                    return 1;
-                }
-            }
-            break;
-
-        case SDL_WINDOWEVENT:
-            if (event->window.event == SDL_WINDOWEVENT_RESIZED) {
-                reset_frametimes(app);
-            }
-            break;
-    }
-    return 0;
-}
-
-static int app_iterate(struct app *app) {
+static _Bool frame(struct app *app) {
     app->quads = app->full = 0;
     if (app->animate) {
         app->time = now() - app->start_time;
@@ -338,8 +264,8 @@ static int app_iterate(struct app *app) {
             b = fmaxf(b, app->quad[i].vertex[j].y);
         }
         SDL_FRect const bounds = {l,t,r-l,b-t};
-        SDL_SetRenderDrawColor(app->renderer, 255, 0, 0, (Uint8)(0.125f * 255));
-        SDL_RenderFillRectF(app->renderer, &bounds);
+        SDL_SetRenderDrawColor(app->renderer, 255,0,0,31);
+        SDL_RenderDrawRectF(app->renderer, &bounds);
     }
 
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
@@ -369,29 +295,68 @@ static int app_iterate(struct app *app) {
     return 0;
 }
 
-int main(int argc, char *argv[])
-{
-    struct app *app = NULL;
-    if (app_init(&app, argc, argv) != 0) {
-        return 1;
+int main(int argc, char* argv[]) {
+    struct app *app = SDL_calloc(1, sizeof *app);
+    app->start_time = now();
+
+    int w=800, h=600;
+    for (int i = 1; i < argc; i++) {
+        int W,H;
+        if (2 == sscanf(argv[i], "%dx%d", &W, &H)) {
+            w = W;
+            h = H;
+            continue;
+        }
+        (void)handle_keys(app, argv[i]);
     }
 
-    int quit = 0;
-    while (!quit) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (app_event(app, &event)) {
-                quit = 1;
-                break;
+    if (app->write_png) {
+        app->renderer = SDL_CreateSoftwareRenderer(
+                SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32));
+    } else {
+         if (0 > SDL_Init(SDL_INIT_VIDEO) ||
+             0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
+                                         &app->window, &app->renderer)) {
+            SDL_free(app);
+            SDL_Quit();
+            return 1;
+        }
+        SDL_SetWindowPosition(app->window, 0,0);
+    }
+    SDL_RenderSetVSync(app->renderer, 1);
+
+    for (_Bool done = 0; !done;) {
+        for (SDL_Event event; SDL_PollEvent(&event);) {
+            switch (event.type) {
+                default: break;
+
+                case SDL_QUIT:
+                    done = 1;
+                    break;
+
+                case SDL_KEYDOWN:
+                    reset_frametimes(app);
+                    if (handle_keys(app, (char const[]){(char)event.key.keysym.sym,0})) {
+                        done = 1;
+                    }
+                    break;
+
+                case SDL_WINDOWEVENT:
+                    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                        reset_frametimes(app);
+                    }
+                    break;
             }
         }
-        if (!quit) {
-            if (app_iterate(app)) {
-                quit = 1;
-            }
+        if (!done) {
+            done = frame(app);
         }
     }
 
-    app_quit(app);
+    SDL_DestroyRenderer(app->renderer);
+    SDL_DestroyWindow  (app->window);
+    SDL_free(app->quad);
+    SDL_free(app);
+    SDL_Quit();
     return 0;
 }
