@@ -29,6 +29,23 @@ static void test_mul(void) {
     expect(equiv(z.hi[3],  15));
 }
 
+static void test_mad(void) {
+    iv z = iv_mad((iv){{1,-1,-2,-1},{2,2,2,1}},
+                  (iv){{2,-3,-1,0},{3,3,1,0}},
+                  (iv){{1,1,0,0},{1,1,0,0}});
+    expect(equiv(z.lo[0],  3));
+    expect(equiv(z.hi[0],  7));
+
+    expect(equiv(z.lo[1], -5));
+    expect(equiv(z.hi[1],  7));
+
+    expect(equiv(z.lo[2], -2));
+    expect(equiv(z.hi[2],  2));
+
+    expect(equiv(z.lo[3],  0));
+    expect(equiv(z.hi[3],  0));
+}
+
 static void test_min(void) {
     iv z = iv_min((iv){{3,-3,-3},{4,4, 4}},
                   (iv){{5,-5,-5},{6,6,-1}});
@@ -150,6 +167,7 @@ int main(void) {
     test_add();
     test_sub();
     test_mul();
+    test_mad();
     test_min();
     test_max();
     test_sqrt();
