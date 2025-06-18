@@ -3,7 +3,7 @@
 
 // Our core idea: a signed distance function v=region(X,Y) is <= 0 inside the region
 // or >0 outside it.  When lo < 0 < hi, we're uncertain if we're inside or outside the region.
-static void classify(iv v, int4 *inside, int4 *uncertain) {
+static void classify(iv32 v, int4 *inside, int4 *uncertain) {
     *inside    = (v.hi <= 0);
     *uncertain = (v.lo <  0) & ~*inside;
 }
@@ -14,8 +14,8 @@ static float4 estimate_coverage_(struct iv2d_region const *region,
     // Evaluate LT, LB, RT, and RB corners of the region.
     float const x = (l+r)/2,
                 y = (t+b)/2;
-    iv const corners = region->eval(region, (iv){{l,l,x,x}, {x,x,r,r}}
-                                          , (iv){{t,y,t,y}, {y,b,y,b}});
+    iv32 const corners = region->eval(region, (iv32){{l,l,x,x}, {x,x,r,r}}
+                                            , (iv32){{t,y,t,y}, {y,b,y,b}});
     int4 inside, uncertain;
     classify(corners, &inside, &uncertain);
 
@@ -46,8 +46,8 @@ static void iv2d_cover_(struct iv2d_region const *region,
         // Evaluate LT, LB, RT, and RB corners of the region, split at integer pixels.
         float const x = floorf( (l+r)/2 ),
                     y = floorf( (t+b)/2 );
-        iv const corners = region->eval(region, (iv){{l,l,x,x}, {x,x,r,r}}
-                                              , (iv){{t,y,t,y}, {y,b,y,b}});
+        iv32 const corners = region->eval(region, (iv32){{l,l,x,x}, {x,x,r,r}}
+                                                , (iv32){{t,y,t,y}, {y,b,y,b}});
         int4 inside,uncertain;
         classify(corners, &inside, &uncertain);
 

@@ -16,11 +16,11 @@ static void record(void *arg, float l,float t,float r,float b,float cov) {
 static void test_circle(void) {
     struct iv2d_circle c = {.region={iv2d_circle}, 0,0,1};
 
-    iv v = c.region.eval(&c.region, as_iv(0), as_iv(0));
+    iv32 v = c.region.eval(&c.region, as_iv32(0), as_iv32(0));
     expect(equiv(v.lo[0], -1));
     expect(equiv(v.hi[0], -1));
 
-    v = c.region.eval(&c.region, as_iv(1.5f), as_iv(0));
+    v = c.region.eval(&c.region, as_iv32(1.5f), as_iv32(0));
     expect(equiv(v.lo[0], 0.5f));
     expect(equiv(v.hi[0], 0.5f));
 }
@@ -31,11 +31,11 @@ static void test_union(void) {
     struct iv2d_region const *subs[] = {&a.region,&b.region};
     struct iv2d_setop u = {.region={iv2d_union}, subs, 2};
 
-    iv v = u.region.eval(&u.region, as_iv(0), as_iv(0));
+    iv32 v = u.region.eval(&u.region, as_iv32(0), as_iv32(0));
     expect(equiv(v.lo[0], -1));
     expect(equiv(v.hi[0], -1));
 
-    v = u.region.eval(&u.region, as_iv(1.5f), as_iv(0));
+    v = u.region.eval(&u.region, as_iv32(1.5f), as_iv32(0));
     expect(equiv(v.lo[0], -0.5f));
     expect(equiv(v.hi[0], -0.5f));
 }
