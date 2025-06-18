@@ -1,7 +1,7 @@
 #include "cleanup.h"
 #include "iv2d.h"
 #include "iv2d_vm.h"
-#include "stb_image_write.h"
+#include "stb/stb_image_write.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
