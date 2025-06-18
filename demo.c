@@ -30,6 +30,7 @@ struct quad {
 struct app {
     SDL_Window   *window;
     SDL_Renderer *renderer;
+    SDL_Surface  *surface;
     struct quad  *quad;
     int           quads, quad_cap, full;
 
@@ -307,8 +308,9 @@ int main(int argc, char* argv[]) {
     }
 
     if (app->write_png) {
-        app->renderer = SDL_CreateSoftwareRenderer(
-                SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32));
+        app->surface = SDL_CreateRGBSurfaceWithFormat(
+            0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+        app->renderer = SDL_CreateSoftwareRenderer(app->surface);
     } else {
          if (0 > SDL_Init(SDL_INIT_VIDEO) ||
              0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
@@ -349,6 +351,7 @@ int main(int argc, char* argv[]) {
     }
 
     SDL_DestroyRenderer(app->renderer);
+    SDL_FreeSurface    (app->surface);
     SDL_DestroyWindow  (app->window);
     SDL_free(app->quad);
     SDL_free(app);
