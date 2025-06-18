@@ -2,7 +2,7 @@
 #include "test.h"
 
 static void test_add(void) {
-    iv z = iv_add((iv){{3},{4}}, (iv){{5},{6}});
+    iv32 z = iv32_add((iv32){{3},{4}}, (iv32){{5},{6}});
     expect(equiv(z.lo[0],  8));
     expect(equiv(z.hi[0], 10));
 }
@@ -14,7 +14,7 @@ static void test_add16(void) {
 
 
 static void test_sub(void) {
-    iv z = iv_sub((iv){{3},{4}}, (iv){{5},{6}});
+    iv32 z = iv32_sub((iv32){{3},{4}}, (iv32){{5},{6}});
     expect(equiv(z.lo[0], -3));
     expect(equiv(z.hi[0], -1));
 }
@@ -26,8 +26,8 @@ static void test_sub16(void) {
 
 
 static void test_mul(void) {
-    iv z = iv_mul((iv){{3,-3,-3,-3},{4,4,4, 4}},
-                  (iv){{5, 5,-5,-5},{6,6,6,-1}});
+    iv32 z = iv32_mul((iv32){{3,-3,-3,-3},{4,4,4, 4}},
+                  (iv32){{5, 5,-5,-5},{6,6,6,-1}});
     expect(equiv(z.lo[0],  15));
     expect(equiv(z.hi[0],  24));
 
@@ -58,9 +58,9 @@ static void test_mul16(void) {
 
 
 static void test_mad(void) {
-    iv z = iv_mad((iv){{1,-1,-2,-1},{2,2,2,1}},
-                  (iv){{2,-3,-1,0},{3,3,1,0}},
-                  (iv){{1,1,0,0},{1,1,0,0}});
+    iv32 z = iv32_mad((iv32){{1,-1,-2,-1},{2,2,2,1}},
+                  (iv32){{2,-3,-1,0},{3,3,1,0}},
+                  (iv32){{1,1,0,0},{1,1,0,0}});
     expect(equiv(z.lo[0],  3));
     expect(equiv(z.hi[0],  7));
 
@@ -92,8 +92,8 @@ static void test_mad16(void) {
 
 
 static void test_min(void) {
-    iv z = iv_min((iv){{3,-3,-3},{4,4, 4}},
-                  (iv){{5,-5,-5},{6,6,-1}});
+    iv32 z = iv32_min((iv32){{3,-3,-3},{4,4, 4}},
+                  (iv32){{5,-5,-5},{6,6,-1}});
     expect(equiv(z.lo[0],  3));
     expect(equiv(z.hi[0],  4));
 
@@ -118,8 +118,8 @@ static void test_min16(void) {
 
 
 static void test_max(void) {
-    iv z = iv_max((iv){{3,-3,-3},{4,4, 4}},
-                  (iv){{5,-5,-5},{6,6,-1}});
+    iv32 z = iv32_max((iv32){{3,-3,-3},{4,4, 4}},
+                  (iv32){{5,-5,-5},{6,6,-1}});
     expect(equiv(z.lo[0],  5));
     expect(equiv(z.hi[0],  6));
 
@@ -144,7 +144,7 @@ static void test_max16(void) {
 
 
 static void test_sqrt(void) {
-    iv z = iv_sqrt((iv){{4},{16}});
+    iv32 z = iv32_sqrt((iv32){{4},{16}});
     expect(equiv(z.lo[0], 2));
     expect(equiv(z.hi[0], 4));
 }
@@ -157,7 +157,7 @@ static void test_sqrt16(void) {
 
 static void test_square(void) {
     {
-        iv z = iv_square((iv){{3,-3,-5},{4,4,-1}});
+        iv32 z = iv32_square((iv32){{3,-3,-5},{4,4,-1}});
         expect(equiv(z.lo[0],  9));
         expect(equiv(z.hi[0], 16));
 
@@ -169,7 +169,7 @@ static void test_square(void) {
     }
 
     {
-        iv z = iv_square((iv){{0,-2,0},{4,0,0}});
+        iv32 z = iv32_square((iv32){{0,-2,0},{4,0,0}});
         expect(equiv(z.lo[0],  0));
         expect(equiv(z.hi[0], 16));
 
@@ -209,7 +209,7 @@ static void test_square16(void) {
 
 static void test_abs(void) {
     {
-        iv z = iv_abs((iv){{3,-3,-5},{4,4,-1}});
+        iv32 z = iv32_abs((iv32){{3,-3,-5},{4,4,-1}});
         expect(equiv(z.lo[0], 3));
         expect(equiv(z.hi[0], 4));
 
@@ -221,7 +221,7 @@ static void test_abs(void) {
     }
 
     {
-        iv z = iv_abs((iv){{0,-2,0},{4,0,0}});
+        iv32 z = iv32_abs((iv32){{0,-2,0},{4,0,0}});
         expect(equiv(z.lo[0], 0));
         expect(equiv(z.hi[0], 4));
 
@@ -261,7 +261,7 @@ static void test_abs16(void) {
 
 static void test_inv(void) {
     {
-        iv z = iv_inv((iv){{+1,-4,-1,+0},
+        iv32 z = iv32_inv((iv32){{+1,-4,-1,+0},
                            {+4,-1,+4,+0}});
         expect(equiv(z.lo[0], 0.25));
         expect(equiv(z.hi[0], 1   ));
@@ -276,7 +276,7 @@ static void test_inv(void) {
         expect(equiv(z.hi[3], +1/0.0));
     }
     {
-        iv z = iv_inv((iv){{-0,-0,-1, 0},
+        iv32 z = iv32_inv((iv32){{-0,-0,-1, 0},
                            {-0,+0, 0,+4}});
         expect(equiv(z.lo[0], -1/0.0));
         expect(equiv(z.hi[0], +1/0.0));

@@ -58,37 +58,37 @@ struct program {
     struct inst inst[];
 };
 
-static iv run_program(struct iv2d_region const *region, iv x, iv y) {
+static iv32 run_program(struct iv2d_region const *region, iv32 x, iv32 y) {
     struct program const *p = (struct program const*)region;
 
     _Thread_local static struct program const *active_program;
-    _Thread_local static iv *v;
+    _Thread_local static iv32 *v;
     if (active_program != p) {
         active_program  = p;
         v = realloc(v, (size_t)p->vals * sizeof *v);
         for (int i = 0; i < p->imms; i++) {
-            v[i] = as_iv(p->inst[i].imm);
+            v[i] = as_iv32(p->inst[i].imm);
         }
     }
 
-    iv *next = v+p->imms;
+    iv32 *next = v+p->imms;
     for (struct inst const *inst = p->inst+p->imms; ; inst++) {
         #pragma clang diagnostic ignored "-Wswitch-default"
         switch (inst->op) {
             case IMM: __builtin_unreachable();
 
-            case UNI: *next++ = as_iv(*inst->ptr);                  break;
+            case UNI: *next++ = as_iv32(*inst->ptr);                  break;
             case X:   *next++ = x;                                  break;
             case Y:   *next++ = y;                                  break;
-            case ABS: *next++ = iv_abs   (           v[inst->rhs]); break;
-            case SQT: *next++ = iv_sqrt  (           v[inst->rhs]); break;
-            case SQR: *next++ = iv_square(           v[inst->rhs]); break;
-            case INV: *next++ = iv_inv   (           v[inst->rhs]); break;
-            case ADD: *next++ = iv_add(v[inst->lhs], v[inst->rhs]); break;
-            case SUB: *next++ = iv_sub(v[inst->lhs], v[inst->rhs]); break;
-            case MUL: *next++ = iv_mul(v[inst->lhs], v[inst->rhs]); break;
-            case MIN: *next++ = iv_min(v[inst->lhs], v[inst->rhs]); break;
-            case MAX: *next++ = iv_max(v[inst->lhs], v[inst->rhs]); break;
+            case ABS: *next++ = iv32_abs   (           v[inst->rhs]); break;
+            case SQT: *next++ = iv32_sqrt  (           v[inst->rhs]); break;
+            case SQR: *next++ = iv32_square(           v[inst->rhs]); break;
+            case INV: *next++ = iv32_inv   (           v[inst->rhs]); break;
+            case ADD: *next++ = iv32_add(v[inst->lhs], v[inst->rhs]); break;
+            case SUB: *next++ = iv32_sub(v[inst->lhs], v[inst->rhs]); break;
+            case MUL: *next++ = iv32_mul(v[inst->lhs], v[inst->rhs]); break;
+            case MIN: *next++ = iv32_min(v[inst->lhs], v[inst->rhs]); break;
+            case MAX: *next++ = iv32_max(v[inst->lhs], v[inst->rhs]); break;
 
             case RET: return v[inst->rhs];
         }
