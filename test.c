@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
             img.rgba[i] = 1.0f;
         }
         iv2d_cover(region, 0,0,w,h, quality, blend_rect,&img);
-        free((void*)(stroke ? stroke_region.arg : region));
+        free((void*)(uintptr_t)(stroke ? stroke_region.arg : region));
     }
     {
         unsigned char *px = malloc((size_t)(4*w*h) * sizeof *px);
