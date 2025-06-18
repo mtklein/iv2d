@@ -38,13 +38,13 @@ build out/stb_image_write.o: compile stb_image_write.c
     flags = -fno-sanitize=integer
 
 build out/demo.o: compile demo.c
-    flags = -isystem /usr/include/SDL2 -D_REENTRANT
+    flags = -isystem /opt/homebrew/include
 build out/demo: link out/demo.o out/iv2d.o $
                                 out/iv2d_regions.o $
                                 out/iv2d_vm.o $
                                 out/prospero.o $
                                 out/stb_image_write.o
-    flags = -lSDL2 -lm
+    flags = -L/opt/homebrew/lib -lSDL2 -lm
 
 build gold/slim_difference-0.png: run out/demo
     args = p 2 600x402

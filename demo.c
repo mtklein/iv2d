@@ -1,4 +1,3 @@
-#include <SDL.h>
 #include "cleanup.h"
 #include "iv2d.h"
 #include "iv2d_regions.h"
@@ -6,6 +5,7 @@
 #include "len.h"
 #include "prospero.h"
 #include "stb/stb_image_write.h"
+#include <SDL2/SDL.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -343,10 +343,16 @@ static int app_iterate(struct app *app) {
     }
 
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
-    SDL_Log("%s (%d), %dx%d, quality %d, %d full + %d partial, %.0f\u00b5s",
-            slides[slide].name, slide, w, h, app->quality,
-            app->full, app->quads - app->full,
-            app->write_png ? 0 : 1e6 * avg_frametime);
+
+    if (app->window) {
+        char title[256];
+        snprintf(title, sizeof title,
+                 "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0f\u00b5s",
+                 slides[slide].name, slide, w, h, app->quality,
+                 app->full, app->quads - app->full,
+                 app->write_png ? 0 : 1e6 * avg_frametime);
+        SDL_SetWindowTitle(app->window, title);
+    }
 
     if (app->write_png) {
         SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(
