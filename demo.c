@@ -28,11 +28,18 @@ struct quad {
 };
 
 struct app {
+    struct quad *quad;
+    int          quads, quad_cap, full, padding;
+};
+
+struct state {
     SDL_Window   *window;
     SDL_Renderer *renderer;
     SDL_Surface  *surface;
-    struct quad  *quad;
-    int           quads, quad_cap, full;
+
+    double frametime[32];
+    int    next_frametime, paddingB;
+    double time,start_time;
 
     int quality, slide;
     int draw_bounds :  1;
@@ -40,16 +47,12 @@ struct app {
     int animate     :  1;
     int stroke      :  1;
     int paddingA    : 28;
-
-    double frametime[32];
-    int    next_frametime, paddingB;
-
-    double time,start_time;
+    int paddingC;
 };
 
-static void reset_frametimes(struct app *app) {
-    for (int i = 0; i < len(app->frametime); i++) {
-        app->frametime[i] = 0;
+static void reset_frametimes(struct state *state) {
+    for (int i = 0; i < len(state->frametime); i++) {
+        state->frametime[i] = 0;
     }
 }
 
@@ -61,7 +64,7 @@ static double now(void) {
     return (double)(uint64_t)SDL_GetPerformanceCounter() * to_sec;
 }
 
-static _Bool handle_keys(struct app *app, char const *key) {
+static _Bool handle_keys(struct state *state, char const *key) {
     for (; *key; key++) {
         switch (*key) {
             default: break;
@@ -70,17 +73,17 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case SDLK_RETURN:
             case SDLK_ESCAPE: return true;
 
-            case '-': if (--app->quality < 0) app->quality=0; break;
+            case '-': if (--state->quality < 0) state->quality=0; break;
             case '+':
-            case '=': app->quality++; break;
+            case '=': state->quality++; break;
 
-            case '[': app->slide--; break;
-            case ']': app->slide++; break;
+            case '[': state->slide--; break;
+            case ']': state->slide++; break;
 
-            case 'a': app->animate     ^= 1; break;
-            case 'b': app->draw_bounds ^= 1; break;
-            case 'p': app->write_png   ^= 1; break;
-            case 's': app->stroke      ^= 1; break;
+            case 'a': state->animate     ^= 1; break;
+            case 'b': state->draw_bounds ^= 1; break;
+            case 'p': state->write_png   ^= 1; break;
+            case 's': state->stroke      ^= 1; break;
 
             case '0':
             case '1':
@@ -91,7 +94,7 @@ static _Bool handle_keys(struct app *app, char const *key) {
             case '6':
             case '7':
             case '8':
-            case '9': app->slide = *key-'0'; break;
+            case '9': state->slide = *key-'0'; break;
         }
     }
     return false;
@@ -130,23 +133,23 @@ static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], 
     return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
 }
 
-static _Bool frame(struct app *app) {
+static _Bool frame(struct app *app, struct state *state) {
     app->quads = app->full = 0;
-    if (app->animate) {
-        app->time = now() - app->start_time;
+    if (state->animate) {
+        state->time = now() - state->start_time;
     }
 
-    SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor    (app->renderer, 255,255,255,255);
-    SDL_RenderClear           (app->renderer);
+    SDL_SetRenderDrawBlendMode(state->renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor    (state->renderer, 255,255,255,255);
+    SDL_RenderClear           (state->renderer);
 
     int w,h;
-    SDL_GetRendererOutputSize(app->renderer, &w,&h);
+    SDL_GetRendererOutputSize(state->renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h,
                 cr = 0.5f*fminf(cx,cy),
-                th = (float)app->time,
+                th = (float)state->time,
                 ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
                 oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
@@ -168,10 +171,10 @@ static _Bool frame(struct app *app) {
     struct iv2d_halfplane hp[7];
     for (int i = 0; i < len(hp); i++) {
         double const pi = atan(1)*4;
-        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i  ) * 2*pi/len(hp)),
-                               cx + 100 * (float)cos(app->time + (i+1) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i+1) * 2*pi/len(hp)));
+        hp[i] = halfplane_from(cx + 100 * (float)cos(state->time + (i  ) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(state->time + (i  ) * 2*pi/len(hp)),
+                               cx + 100 * (float)cos(state->time + (i+1) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(state->time + (i+1) * 2*pi/len(hp)));
     }
     struct iv2d_region const *ngon_region[len(hp)];
     struct iv2d_setop ngon = intersect_halfplanes(hp, len(hp), ngon_region);
@@ -215,7 +218,7 @@ static _Bool frame(struct app *app) {
         {vm_union,           "vm union"  },
         {prospero,           "prospero"  },
     };
-    int const slide = wrap(app->slide, len(slides));
+    int const slide = wrap(state->slide, len(slides));
     struct iv2d_region const *region = slides[slide].region;
 
     float W = (float)w,
@@ -225,34 +228,35 @@ static _Bool frame(struct app *app) {
     }
 
     struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
-    if (app->stroke) {
+    if (state->stroke) {
         region = &stroke.region;
     }
 
     double const start = now();
     {
-        iv2d_cover(region, 0,0,w,h, app->quality, queue_rect,app);
+        iv2d_cover(region, 0,0,w,h, state->quality, queue_rect,app);
     }
-    app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
+    state->frametime[state->next_frametime++ % len(state->frametime)] =
+            now() - start;
 
     double avg_frametime;
     {
         double  sum = 0;
         int nonzero = 0;
-        for (int i = 0; i < len(app->frametime); i++) {
-            sum     += app->frametime[i];
-            nonzero += app->frametime[i] > 0;
+        for (int i = 0; i < len(state->frametime); i++) {
+            sum     += state->frametime[i];
+            nonzero += state->frametime[i] > 0;
         }
         avg_frametime = sum / (double)nonzero;
     }
 
-    SDL_RenderGeometryRaw(app->renderer, NULL
+    SDL_RenderGeometryRaw(state->renderer, NULL
                                        , &app->quad->vertex->x, sizeof *app->quad->vertex
                                        , &app->quad->vertex->c, sizeof *app->quad->vertex
                                        , NULL, 0
                                        , len(app->quad->vertex) * app->quads
                                        , NULL, 0, 0);
-    if (app->draw_bounds) {
+    if (state->draw_bounds) {
         float l = +1.0f/0.0f,
               t = +1.0f/0.0f,
               r = -1.0f/0.0f,
@@ -265,36 +269,37 @@ static _Bool frame(struct app *app) {
             b = fmaxf(b, app->quad[i].vertex[j].y);
         }
         SDL_FRect const bounds = {l,t,r-l,b-t};
-        SDL_SetRenderDrawColor(app->renderer, 255,0,0,31);
-        SDL_RenderDrawRectF   (app->renderer, &bounds);
+        SDL_SetRenderDrawColor(state->renderer, 255,0,0,31);
+        SDL_RenderDrawRectF   (state->renderer, &bounds);
     }
 
-    if (app->window) {
+    if (state->window) {
         char title[256];
         snprintf(title, sizeof title,
                  "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0f\u00b5s",
-                 slides[slide].name, slide, w, h, app->quality,
+                 slides[slide].name, slide, w, h, state->quality,
                  app->full, app->quads - app->full,
-                 app->write_png ? 0 : 1e6 * avg_frametime);
-        SDL_SetWindowTitle(app->window, title);
+                 state->write_png ? 0 : 1e6 * avg_frametime);
+        SDL_SetWindowTitle(state->window, title);
     }
 
-    if (app->write_png) {
+    if (state->write_png) {
         SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32);
-        SDL_RenderReadPixels(app->renderer, NULL,
+        SDL_RenderReadPixels(state->renderer, NULL,
                              SDL_PIXELFORMAT_RGBA32, rgba->pixels, rgba->pitch);
         stbi_write_png_to_func(write_to_stdout, NULL, w,h,4, rgba->pixels, rgba->pitch);
         SDL_FreeSurface(rgba);
         return 1;
     }
 
-    SDL_RenderPresent(app->renderer);
+    SDL_RenderPresent(state->renderer);
     return 0;
 }
 
 int main(int argc, char* argv[]) {
-    struct app *app = SDL_calloc(1, sizeof *app);
-    app->start_time = now();
+    struct app  app   = {0};
+    struct state state = {0};
+    state.start_time = now();
 
     int w=800, h=600;
     for (int i = 1; i < argc; i++) {
@@ -304,22 +309,21 @@ int main(int argc, char* argv[]) {
             h = H;
             continue;
         }
-        (void)handle_keys(app, argv[i]);
+        (void)handle_keys(&state, argv[i]);
     }
 
-    if (app->write_png) {
-        app->surface = SDL_CreateRGBSurfaceWithFormat(
+    if (state.write_png) {
+        state.surface = SDL_CreateRGBSurfaceWithFormat(
             0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
-        app->renderer = SDL_CreateSoftwareRenderer(app->surface);
+        state.renderer = SDL_CreateSoftwareRenderer(state.surface);
     } else {
          if (0 > SDL_Init(SDL_INIT_VIDEO) ||
-             0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
-                                             &app->window, &app->renderer)) {
-            SDL_free(app);
+            0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
+                                            &state.window, &state.renderer)) {
             SDL_Quit();
             return 1;
         }
-        SDL_SetWindowPosition(app->window, 0,0);
+        SDL_SetWindowPosition(state.window, 0,0);
     }
 
     for (_Bool done = 0; !done;) {
@@ -332,29 +336,28 @@ int main(int argc, char* argv[]) {
                     break;
 
                 case SDL_KEYDOWN:
-                    reset_frametimes(app);
-                    if (handle_keys(app, (char const[]){(char)event.key.keysym.sym,0})) {
+                    reset_frametimes(&state);
+                    if (handle_keys(&state, (char const[]){(char)event.key.keysym.sym,0})) {
                         done = 1;
                     }
                     break;
 
                 case SDL_WINDOWEVENT:
                     if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                        reset_frametimes(app);
+                        reset_frametimes(&state);
                     }
                     break;
             }
         }
         if (!done) {
-            done = frame(app);
+            done = frame(&app, &state);
         }
     }
 
-    SDL_DestroyRenderer(app->renderer);
-    SDL_FreeSurface    (app->surface);
-    SDL_DestroyWindow  (app->window);
-    SDL_free(app->quad);
-    SDL_free(app);
+    SDL_DestroyRenderer(state.renderer);
+    SDL_FreeSurface    (state.surface);
+    SDL_DestroyWindow  (state.window);
+    SDL_free(app.quad);
     SDL_Quit();
     return 0;
 }
