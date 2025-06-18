@@ -186,8 +186,17 @@ static void test_mad_imm_uni(void) {
 
     iv x = (iv){{1,2,3,4}, {5,6,7,8}},
        y = (iv){{8,7,6,5}, {4,3,2,1}};
+
     iv z = region->eval(region, x,y);
     iv e = iv_mad(x,y,as_iv(3));
+    for (int i = 0; i < 4; i++) {
+        expect(equiv(z.lo[i], e.lo[i]));
+        expect(equiv(z.hi[i], e.hi[i]));
+    }
+
+    u = 4;
+    z = region->eval(region, x,y);
+    e = iv_mad(x,y,as_iv(4));
     for (int i = 0; i < 4; i++) {
         expect(equiv(z.lo[i], e.lo[i]));
         expect(equiv(z.hi[i], e.hi[i]));
