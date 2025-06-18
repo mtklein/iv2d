@@ -23,3 +23,5 @@ int iv2d_abs   (struct iv2d_builder*, int);
 int iv2d_sqrt  (struct iv2d_builder*, int);
 int iv2d_square(struct iv2d_builder*, int);
 int iv2d_inv   (struct iv2d_builder*, int);
+int iv2d_sin   (struct iv2d_builder*, int);
+int iv2d_cos   (struct iv2d_builder*, int);

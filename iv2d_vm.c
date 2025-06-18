@@ -4,7 +4,7 @@
 #include <string.h>
 
 struct inst {
-    enum { RET,IMM,UNI,X,Y,ABS,SQT,SQR,INV,ADD,SUB,MUL,MIN,MAX} op;
+    enum { RET,IMM,UNI,X,Y,ABS,SQT,SQR,INV,SIN,COS,ADD,SUB,MUL,MIN,MAX} op;
     int          lhs,rhs;
     float        imm;
     float const *ptr;
@@ -42,6 +42,8 @@ int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=
 int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
 int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
 int iv2d_inv   (builder *b, int v) { return push(b, (struct inst){.op=INV, .rhs=v}); }
+int iv2d_sin   (builder *b, int v) { return push(b, (struct inst){.op=SIN, .rhs=v}); }
+int iv2d_cos   (builder *b, int v) { return push(b, (struct inst){.op=COS, .rhs=v}); }
 
 int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
 int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
@@ -84,6 +86,8 @@ static iv run_program(struct iv2d_region const *region, iv x, iv y) {
             case SQT: *next++ = iv_sqrt  (           v[inst->rhs]); break;
             case SQR: *next++ = iv_square(           v[inst->rhs]); break;
             case INV: *next++ = iv_inv   (           v[inst->rhs]); break;
+            case SIN: *next++ = iv_sin   (           v[inst->rhs]); break;
+            case COS: *next++ = iv_cos   (           v[inst->rhs]); break;
             case ADD: *next++ = iv_add(v[inst->lhs], v[inst->rhs]); break;
             case SUB: *next++ = iv_sub(v[inst->lhs], v[inst->rhs]); break;
             case MUL: *next++ = iv_mul(v[inst->lhs], v[inst->rhs]); break;

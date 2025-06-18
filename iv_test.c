@@ -1,5 +1,6 @@
 #include "iv.h"
 #include "test.h"
+#include <math.h>
 
 static void test_add(void) {
     iv z = iv_add((iv){{3},{4}}, (iv){{5},{6}});
@@ -163,6 +164,33 @@ static void test_inv(void) {
     }
 }
 
+static void test_sin_cos(void) {
+    {
+        iv z = iv_sin(as_iv(0.0f));
+        expect(equiv(z.lo[0], 0.0f));
+        expect(equiv(z.hi[0], 0.0f));
+    }
+    {
+        iv z = iv_cos(as_iv(0.0f));
+        expect(equiv(z.lo[0], 1.0f));
+        expect(equiv(z.hi[0], 1.0f));
+    }
+    {
+        float const half_pi = 1.57079632679f;
+        iv z = iv_sin(as_iv(half_pi));
+        float const s = sinf(half_pi);
+        expect(equiv(z.lo[0], s));
+        expect(equiv(z.hi[0], s));
+    }
+    {
+        float const half_pi = 1.57079632679f;
+        iv z = iv_cos(as_iv(half_pi));
+        float const c = cosf(half_pi);
+        expect(equiv(z.lo[0], c));
+        expect(equiv(z.hi[0], c));
+    }
+}
+
 int main(void) {
     test_add();
     test_sub();
@@ -174,5 +202,6 @@ int main(void) {
     test_square();
     test_abs();
     test_inv();
+    test_sin_cos();
     return 0;
 }

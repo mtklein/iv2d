@@ -17,11 +17,15 @@ static struct iv2d_region const* create(float const *w, float const *h, float co
     }
     int orbit_circle;
     {
-        // TODO: add iv2d_sin/iv2d_cos, animate orbit circle using iv2d_uni(b,t)
-        (void)t;
-        int dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_imm(b,300)));
-        int dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_imm(b,200)));
-        int len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
+        int const ox = iv2d_add(b, cx,
+                                iv2d_mul(b, iv2d_imm(b, 100),
+                                         iv2d_cos(b, iv2d_uni(b,t)))),
+                  oy = iv2d_add(b, cy,
+                                iv2d_mul(b, iv2d_imm(b, 100),
+                                         iv2d_sin(b, iv2d_uni(b,t))));
+        int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), ox)),
+                  dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), oy)),
+                  len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
         orbit_circle = iv2d_sub(b, len, iv2d_imm(b,100));
     }
     return iv2d_ret(b, iv2d_min(b, center_circle, orbit_circle));

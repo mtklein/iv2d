@@ -94,3 +94,17 @@ static inline iv iv_inv(iv x) {
         if_then_else(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0), 1/x.lo, (float4){0} + 1/0.0f),
     };
 }
+
+static inline iv iv_sin(iv x) {
+    return (iv){
+        __builtin_elementwise_sin(x.lo),
+        __builtin_elementwise_sin(x.hi),
+    };
+}
+
+static inline iv iv_cos(iv x) {
+    return (iv){
+        __builtin_elementwise_cos(x.lo),
+        __builtin_elementwise_cos(x.hi),
+    };
+}
