@@ -44,7 +44,7 @@ build out/demo: link out/demo.o out/iv2d.o $
                                 out/iv2d_vm.o $
                                 out/prospero.o $
                                 out/stb_image_write.o
-    flags = -L/opt/homebrew/lib -lSDL3
+    flags = -L/opt/homebrew/lib -lSDL2 -lm
 
 build gold/slim_difference-0.png: run out/demo
     args = p 2 600x402
