@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-static void write_to_stdout(void *ctx, const void *buf, int len) {
+static void write_to_stdout(void *ctx, void *buf, int len) {
     (void)ctx;
     fwrite(buf, 1, (size_t)len, stdout);
 }
@@ -35,19 +35,23 @@ static void blend_rect(void *ctx, float l, float t, float r, float b, float cov)
     }
 }
 
-static struct iv2d_region const* make_vm_union(float cx,float cy,float cr,float ox,float oy) {
+struct vm_params {
+    float cx, cy, cr, ox, oy;
+};
+
+static struct iv2d_region const* make_vm_union(struct vm_params *p) {
     struct iv2d_builder *b = iv2d_builder();
     int center_circle;
     {
-        int dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&cx)));
-        int dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&cy)));
+        int dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&p->cx)));
+        int dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&p->cy)));
         int len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
-        center_circle = iv2d_sub(b, len, iv2d_uni(b,&cr));
+        center_circle = iv2d_sub(b, len, iv2d_uni(b,&p->cr));
     }
     int orbit_circle;
     {
-        int dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&ox)));
-        int dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&oy)));
+        int dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&p->ox)));
+        int dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&p->oy)));
         int len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
         orbit_circle = iv2d_sub(b, len, iv2d_imm(b,100));
     }
@@ -65,14 +69,24 @@ int main(int argc, char **argv) {
 
     float cx = 0.5f * (float)w;
     float cy = 0.5f * (float)h;
-    float cr = 0.5f * fminf(cx, cy);
-    float ox = 300;
-    float oy = 200;
+    struct vm_params params = {
+        .cx = cx,
+        .cy = cy,
+        .cr = 0.5f * fminf(cx, cy),
+        .ox = 300,
+        .oy = 200,
+    };
 
     __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region const *region = make_vm_union(cx,cy,cr,ox,oy);
+    struct iv2d_region const *region = make_vm_union(&params);
 
-    struct image img = {w,h,calloc((size_t)w * (size_t)h * 4, sizeof *img.px)};
+    struct image img = {w,h,malloc((size_t)w * (size_t)h * 4 * sizeof *img.px)};
+    for (int i=0;i<w*h;i++) {
+        img.px[4*i+0] = 1.0f;
+        img.px[4*i+1] = 1.0f;
+        img.px[4*i+2] = 1.0f;
+        img.px[4*i+3] = 1.0f;
+    }
     iv2d_cover(region, 0,0,w,h, quality, blend_rect, &img);
 
     unsigned char *pixels = malloc((size_t)w * (size_t)h * 4);
