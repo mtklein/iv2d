@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     struct image img = {w,h, malloc((size_t)(4*w*h) * sizeof *img.rgba)};
     {
         float const W=(float)w, H=(float)h, t=0.0f;
-        struct iv2d_region const *region = slide[n]->create(&W,&H,&t);
+        struct iv2d_region const *region = slide[n]->create(W,H,t);
         struct iv2d_stroke stroke_region = {.region={iv2d_stroke}, region, 2};
         stroke_region.arg = region;
         if (stroke) {

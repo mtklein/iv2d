@@ -24,16 +24,15 @@ struct ngon_data {
     struct iv2d_halfplane hp[HP];
 };
 
-static struct iv2d_region const* create(float const *w, float const *h, float const *t) {
+static struct iv2d_region const* create(float w, float h, float t) {
     struct ngon_data *d = malloc(sizeof *d);
-    float W=*w, H=*h, T=*t;
-    float cx = 0.5f * W,
-          cy = 0.5f * H;
+    float cx = 0.5f * w,
+          cy = 0.5f * h;
     float pi = (float)atan(1) * 4;
     float step = 2 * pi / (float)HP;
     for (int i = 0; i < HP; i++) {
-        float a0 = T + (float)i * step;
-        float a1 = T + (float)(i+1) * step;
+        float a0 = t + (float)i * step;
+        float a1 = t + (float)(i+1) * step;
         d->hp[i] = halfplane_from(cx + 100 * cosf(a0),
                                   cy + 100 * sinf(a0),
                                   cx + 100 * cosf(a1),

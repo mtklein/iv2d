@@ -20,13 +20,12 @@ struct hp_data {
     struct iv2d_halfplane hp;
 };
 
-static struct iv2d_region const* create(float const *w, float const *h, float const *t) {
+static struct iv2d_region const* create(float w, float h, float t) {
     struct hp_data *d = malloc(sizeof *d);
-    float W=*w, H=*h, T=*t;
-    float cx = 0.5f * W,
-          cy = 0.5f * H;
-    float ox = cx + (300 - cx)*cosf(T) - (200 - cy)*sinf(T);
-    float oy = cy + (200 - cy)*cosf(T) + (300 - cx)*sinf(T);
+    float cx = 0.5f * w,
+          cy = 0.5f * h;
+    float ox = cx + (300 - cx)*cosf(t) - (200 - cy)*sinf(t);
+    float oy = cy + (200 - cy)*cosf(t) + (300 - cx)*sinf(t);
     d->hp = halfplane_from(ox,oy,cx,cy);
     return &d->hp.region;
 }

@@ -10,15 +10,14 @@ struct capsule_data {
     struct iv2d_capsule capsule;
 };
 
-static struct iv2d_region const* create(float const *w, float const *h, float const *t) {
+static struct iv2d_region const* create(float w, float h, float t) {
     struct capsule_data *d = malloc(sizeof *d);
-    float W=*w, H=*h, T=*t;
-    float cx = 0.5f * W,
-          cy = 0.5f * H;
-    float ox = cx + (300 - cx)*cosf(T) - (200 - cy)*sinf(T);
-    float oy = cy + (200 - cy)*cosf(T) + (300 - cx)*sinf(T);
+    float cx = 0.5f * w,
+          cy = 0.5f * h;
+    float ox = cx + (300 - cx)*cosf(t) - (200 - cy)*sinf(t);
+    float oy = cy + (200 - cy)*cosf(t) + (300 - cx)*sinf(t);
     d->capsule = (struct iv2d_capsule){.region={iv2d_capsule}, ox,oy, cx,cy, 4};
-    (void)H; // unused except in expressions above
+    (void)h; // unused except in expressions above
     return &d->capsule.region;
 }
 

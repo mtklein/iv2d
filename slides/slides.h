@@ -2,7 +2,7 @@
 
 struct slide {
     char const *name;
-    struct iv2d_region const* (*create)(float const *w, float const *h, float const *t);
+    struct iv2d_region const* (*create)(float w, float h, float t);
     void (*cleanup)(struct iv2d_region const*);
 };
 
