@@ -1,4 +1,5 @@
 #include "iv2d.h"
+#include "iv2d_regions.h"
 #include "iv2d_vm.h"
 #include "stb/stb_image_write.h"
 #include "slides/slides.h"
@@ -35,10 +36,12 @@ int main(int argc, char* argv[]) {
         h = 600;
     int quality = 0;
     int n = 0;
+    int stroke = 0;
     for (int i = 1; i < argc; i++) {
         int W,H;
         if (sscanf(argv[i], "%dx%d", &W,&H) == 2) { w=W; h=H; continue; }
         if (strspn(argv[i], "+") == strlen(argv[i])) { quality = (int)strlen(argv[i]); continue; }
+        if (strcmp(argv[i], "s") == 0) { stroke = 1; continue; }
         if (sscanf(argv[i], "%d", &n) == 1) { continue; }
     }
 
@@ -46,12 +49,17 @@ int main(int argc, char* argv[]) {
     {
         float const W=(float)w, H=(float)h, t=0.0f;
         struct iv2d_region const *region = slide[n]->create(&W,&H,&t);
+        struct iv2d_stroke stroke_region = {.region={iv2d_stroke}, region, 2};
+        stroke_region.arg = region;
+        if (stroke) {
+            region = &stroke_region.region;
+        }
 
         for (int i = 0; i < 4*w*h; i++) {
             img.rgba[i] = 1.0f;
         }
         iv2d_cover(region, 0,0,w,h, quality, blend_rect,&img);
-        slide[n]->cleanup(region);
+        slide[n]->cleanup(stroke ? stroke_region.arg : region);
     }
     {
         unsigned char *px = malloc((size_t)(4*w*h) * sizeof *px);
