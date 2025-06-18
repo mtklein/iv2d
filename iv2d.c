@@ -15,7 +15,7 @@ static float4 estimate_coverage_(struct iv2d_region const *region,
     float const x = (l+r)/2,
                 y = (t+b)/2;
     iv32 const corners = region->eval(region, (iv32){{l,l,x,x}, {x,x,r,r}}
-                                          , (iv32){{t,y,t,y}, {y,b,y,b}});
+                                            , (iv32){{t,y,t,y}, {y,b,y,b}});
     int4 inside, uncertain;
     classify(corners, &inside, &uncertain);
 
@@ -47,7 +47,7 @@ static void iv2d_cover_(struct iv2d_region const *region,
         float const x = floorf( (l+r)/2 ),
                     y = floorf( (t+b)/2 );
         iv32 const corners = region->eval(region, (iv32){{l,l,x,x}, {x,x,r,r}}
-                                              , (iv32){{t,y,t,y}, {y,b,y,b}});
+                                                , (iv32){{t,y,t,y}, {y,b,y,b}});
         int4 inside,uncertain;
         classify(corners, &inside, &uncertain);
 

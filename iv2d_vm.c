@@ -78,8 +78,8 @@ static iv32 run_program(struct iv2d_region const *region, iv32 x, iv32 y) {
             case IMM: __builtin_unreachable();
 
             case UNI: *next++ = as_iv32(*inst->ptr);                  break;
-            case X:   *next++ = x;                                  break;
-            case Y:   *next++ = y;                                  break;
+            case X:   *next++ = x;                                    break;
+            case Y:   *next++ = y;                                    break;
             case ABS: *next++ = iv32_abs   (           v[inst->rhs]); break;
             case SQT: *next++ = iv32_sqrt  (           v[inst->rhs]); break;
             case SQR: *next++ = iv32_square(           v[inst->rhs]); break;

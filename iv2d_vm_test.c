@@ -14,7 +14,7 @@ static void test_sub(void) {
     }
 
     iv32 x = (iv32){{0,1,2,3}, {4,5,6,7}},
-       y = (iv32){{0,0,1,1}, {5,4,3,2}};
+         y = (iv32){{0,0,1,1}, {5,4,3,2}};
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_sub(x,y);
     for (int i = 0; i < 4; i++) {
@@ -34,7 +34,7 @@ static void test_add(void) {
     }
 
     iv32 x = (iv32){{1,2,3,4}, {5,6,7,8}},
-       y = (iv32){{8,7,6,5}, {4,3,2,1}};
+         y = (iv32){{8,7,6,5}, {4,3,2,1}};
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_add(x,y);
     for (int i = 0; i < 4; i++) {
@@ -54,7 +54,7 @@ static void test_mul(void) {
     }
 
     iv32 x = (iv32){{3,-3,-3,-3}, {4,4,4,4}},
-       y = (iv32){{5,5,-5,-5}, {6,6,6,-1}};
+         y = (iv32){{5,5,-5,-5}, {6,6,6,-1}};
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_mul(x,y);
     for (int i = 0; i < 4; i++) {
@@ -74,7 +74,7 @@ static void test_min(void) {
     }
 
     iv32 x = (iv32){{3,-3,-3}, {4,4,4}},
-       y = (iv32){{5,-5,-5}, {6,6,-1}};
+         y = (iv32){{5,-5,-5}, {6,6,-1}};
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_min(x,y);
     for (int i = 0; i < 3; i++) {
@@ -94,7 +94,7 @@ static void test_max(void) {
     }
 
     iv32 x = (iv32){{3,-3,-3}, {4,4,4}},
-       y = (iv32){{5,-5,-5}, {6,6,-1}};
+         y = (iv32){{5,-5,-5}, {6,6,-1}};
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_max(x,y);
     for (int i = 0; i < 3; i++) {
@@ -185,7 +185,7 @@ static void test_mad_imm_uni(void) {
     }
 
     iv32 x = (iv32){{1,2,3,4}, {5,6,7,8}},
-       y = (iv32){{8,7,6,5}, {4,3,2,1}};
+         y = (iv32){{8,7,6,5}, {4,3,2,1}};
 
     iv32 z = region->eval(region, x,y);
     iv32 e = iv32_mad(x,y,as_iv32(3));
