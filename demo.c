@@ -150,6 +150,10 @@ void SDL_AppQuit(void *ctx, SDL_AppResult res) {
     struct app *app = ctx;
     (void)res;
 
+    for (int i = 0; i < slides; i++) {
+        slide_cleanup(slide[i]);
+    }
+
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow  (app->window);
     SDL_free(app->quad);
@@ -195,9 +199,10 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     int w,h;
     SDL_GetRenderOutputSize(app->renderer, &w,&h);
 
-    int const slide = wrap(app->slide, slide_count);
-    struct slide *desc = slides[slide];
-    struct iv2d_region const *region = slide_region(desc, (float)w, (float)h, app->time);
+    int const which = wrap(app->slide, slides);
+    struct slide *desc = slide[which];
+    float wt = (float)w, ht = (float)h, ft = (float)app->time;
+    struct iv2d_region const *region = slide_region(desc, &wt, &ht, &ft);
 
     struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
     if (app->stroke) {
@@ -247,7 +252,7 @@ SDL_AppResult SDL_AppIterate(void *ctx) {
     SDL_SetRenderDrawColorFloat(app->renderer, 0,0,0,1);
     SDL_RenderDebugTextFormat  (app->renderer, 4,4,
             "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0fµs",
-            desc->name, slide, w,h, app->quality, app->full, app->quads - app->full,
+            desc->name, which, w,h, app->quality, app->full, app->quads - app->full,
             app->write_png ? 0 : 1e6 * avg_frametime);
 
     if (app->write_png) {

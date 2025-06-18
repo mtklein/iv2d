@@ -2,25 +2,33 @@
 #include "../iv2d_regions.h"
 #include <math.h>
 
-static struct iv2d_region const *make_intersect(struct slide *s, float w, float h, double t) {
-    (void)s;
-    float cx = 0.5f * w;
-    float cy = 0.5f * h;
+struct intersect_data {
+    struct iv2d_circle center, orbit;
+    struct iv2d_region const *sub[2];
+    struct iv2d_setop op;
+};
+
+static void cleanup_intersect(struct slide *s) {
+    free(s->data);
+    s->data = NULL;
+}
+
+static struct iv2d_region const *make_intersect(struct slide *s, float const *w, float const *h, float const *t) {
+    struct intersect_data *d = malloc(sizeof *d);
+    s->data = d;
+    float cx = 0.5f * *w;
+    float cy = 0.5f * *h;
     float cr = 0.5f * fminf(cx, cy);
-    float th = (float)t;
+    float th = t ? *t : 0;
     float ox = cx + (300 - cx) * cosf(th) - (200 - cy) * sinf(th);
     float oy = cy + (200 - cy) * cosf(th) + (300 - cx) * sinf(th);
 
-    static struct iv2d_circle center, orbit;
-    static struct iv2d_region const *sub[2];
-    static struct iv2d_setop op;
-
-    center = (struct iv2d_circle){.region={iv2d_circle}, cx, cy, cr};
-    orbit  = (struct iv2d_circle){.region={iv2d_circle}, ox, oy, 100};
-    sub[0] = &center.region;
-    sub[1] = &orbit.region;
-    op = (struct iv2d_setop){.region={iv2d_intersect}, sub, 2};
-    return &op.region;
+    d->center = (struct iv2d_circle){.region={iv2d_circle}, cx, cy, cr};
+    d->orbit  = (struct iv2d_circle){.region={iv2d_circle}, ox, oy, 100};
+    d->sub[0] = &d->center.region;
+    d->sub[1] = &d->orbit.region;
+    d->op = (struct iv2d_setop){.region={iv2d_intersect}, d->sub, 2};
+    return &d->op.region;
 }
 
-struct slide intersect_slide = {"intersect", NULL, make_intersect, 0};
+struct slide intersect_slide = {"intersect", NULL, make_intersect, cleanup_intersect, NULL, 0};

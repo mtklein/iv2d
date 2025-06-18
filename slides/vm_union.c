@@ -4,18 +4,20 @@
 #include "../iv2d_regions.h"
 #include <math.h>
 
-static struct iv2d_region const *make_vm_union(struct slide *s, float w, float h, double t) {
-    float cx = 0.5f * w;
-    float cy = 0.5f * h;
+static void cleanup_vm_union(struct slide *s) {
+    free((void*)s->region);
+    s->region = NULL;
+}
+
+static struct iv2d_region const *make_vm_union(struct slide *s, float const *w, float const *h, float const *t) {
+    float cx = 0.5f * *w;
+    float cy = 0.5f * *h;
     float cr = 0.5f * fminf(cx, cy);
-    float th = (float)t;
+    float th = t ? *t : 0;
     float ox = cx + (300 - cx) * cosf(th) - (200 - cy) * sinf(th);
     float oy = cy + (200 - cy) * cosf(th) + (300 - cx) * sinf(th);
 
-    if (s->region) {
-        free((void*)s->region);
-        s->region = NULL;
-    }
+    cleanup_vm_union(s);
 
     struct iv2d_builder *b = iv2d_builder();
     int center_circle;
@@ -35,4 +37,4 @@ static struct iv2d_region const *make_vm_union(struct slide *s, float w, float h
     return iv2d_ret(b, iv2d_min(b, center_circle, orbit_circle));
 }
 
-struct slide vm_union_slide = {"vm union", NULL, make_vm_union, 0};
+struct slide vm_union_slide = {"vm union", NULL, make_vm_union, cleanup_vm_union, NULL, 0};

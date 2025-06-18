@@ -37,7 +37,6 @@ build out/slides/halfplane.o:    compile slides/halfplane.c
 build out/slides/ngon.o:         compile slides/ngon.c
 build out/slides/vm_union.o:     compile slides/vm_union.c
 build out/slides/prospero_slide.o: compile slides/prospero_slide.c
-build out/slides/list.o:         compile slides/list.c
 
 build out/iv2d_vm.o:       compile  iv2d_vm.c
 build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
@@ -61,7 +60,6 @@ build out/demo: link out/demo.o out/iv2d.o $
                                 out/slides/ngon.o $
                                 out/slides/vm_union.o $
                                 out/slides/prospero_slide.o $
-                                out/slides/list.o $
                                 out/stb_image_write.o
     flags = -L/opt/homebrew/lib -lSDL3
 

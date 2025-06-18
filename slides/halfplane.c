@@ -12,17 +12,24 @@ static struct iv2d_halfplane halfplane_from(float x0,float y0,float x1,float y1)
     return (struct iv2d_halfplane){.region={iv2d_halfplane}, nx,ny,d};
 }
 
-static struct iv2d_region const *make_halfplane(struct slide *s, float w, float h, double t) {
-    (void)s; (void)t;
-    float cx = 0.5f * w;
-    float cy = 0.5f * h;
-    float th = (float)t;
+struct halfplane_data { struct iv2d_halfplane hp; };
+
+static void cleanup_halfplane(struct slide *s) {
+    free(s->data);
+    s->data = NULL;
+}
+
+static struct iv2d_region const *make_halfplane(struct slide *s, float const *w, float const *h, float const *t) {
+    struct halfplane_data *d = malloc(sizeof *d);
+    s->data = d;
+    float cx = 0.5f * *w;
+    float cy = 0.5f * *h;
+    float th = t ? *t : 0;
     float ox = cx + (300 - cx) * cosf(th) - (200 - cy) * sinf(th);
     float oy = cy + (200 - cy) * cosf(th) + (300 - cx) * sinf(th);
 
-    static struct iv2d_halfplane hp;
-    hp = halfplane_from(ox, oy, cx, cy);
-    return &hp.region;
+    d->hp = halfplane_from(ox, oy, cx, cy);
+    return &d->hp.region;
 }
 
-struct slide halfplane_slide = {"halfplane", NULL, make_halfplane, 0};
+struct slide halfplane_slide = {"halfplane", NULL, make_halfplane, cleanup_halfplane, NULL, 0};
