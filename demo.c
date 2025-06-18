@@ -27,12 +27,19 @@ struct quad {
     struct { float x,y; SDL_Color c; } vertex[6];
 };
 
+struct geom {
+    struct quad *quad;
+    int          quads, quad_cap, full, padding;
+};
+
 struct app {
     SDL_Window   *window;
     SDL_Renderer *renderer;
     SDL_Surface  *surface;
-    struct quad  *quad;
-    int           quads, quad_cap, full;
+
+    double frametime[32];
+    int    next_frametime, paddingB;
+    double time,start_time;
 
     int quality, slide;
     int draw_bounds :  1;
@@ -40,11 +47,7 @@ struct app {
     int animate     :  1;
     int stroke      :  1;
     int paddingA    : 28;
-
-    double frametime[32];
-    int    next_frametime, paddingB;
-
-    double time,start_time;
+    int paddingC;
 };
 
 static void reset_frametimes(struct app *app) {
@@ -98,15 +101,15 @@ static _Bool handle_keys(struct app *app, char const *key) {
 }
 
 static void queue_rect(void *arg, float l, float t, float r, float b, float cov) {
-    struct app *app = (struct app*)arg;
-    app->full += cov == 1.0f;
+    struct geom *geom = (struct geom*)arg;
+    geom->full += cov == 1.0f;
 
-    if (app->quad_cap == app->quads) {
-        app->quad_cap = app->quad_cap ? 2 * app->quad_cap : 1;
-        app->quad = SDL_realloc(app->quad, (size_t)app->quad_cap * sizeof *app->quad);
+    if (geom->quad_cap == geom->quads) {
+        geom->quad_cap = geom->quad_cap ? 2 * geom->quad_cap : 1;
+        geom->quad = SDL_realloc(geom->quad, (size_t)geom->quad_cap * sizeof *geom->quad);
     }
     SDL_Color const c = {127,127,127, (uint8_t)(cov*255)};
-    app->quad[app->quads++] = (struct quad) {{
+    geom->quad[geom->quads++] = (struct quad) {{
         {l,t,c}, {r,t,c}, {l,b,c},
         {r,t,c}, {r,b,c}, {l,b,c},
     }};
@@ -130,8 +133,8 @@ static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], 
     return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
 }
 
-static _Bool frame(struct app *app) {
-    app->quads = app->full = 0;
+static _Bool frame(struct geom *geom, struct app *app) {
+    geom->quads = geom->full = 0;
     if (app->animate) {
         app->time = now() - app->start_time;
     }
@@ -231,9 +234,10 @@ static _Bool frame(struct app *app) {
 
     double const start = now();
     {
-        iv2d_cover(region, 0,0,w,h, app->quality, queue_rect,app);
+        iv2d_cover(region, 0,0,w,h, app->quality, queue_rect,geom);
     }
-    app->frametime[app->next_frametime++ % len(app->frametime)] = now() - start;
+    app->frametime[app->next_frametime++ % len(app->frametime)] =
+            now() - start;
 
     double avg_frametime;
     {
@@ -247,22 +251,22 @@ static _Bool frame(struct app *app) {
     }
 
     SDL_RenderGeometryRaw(app->renderer, NULL
-                                       , &app->quad->vertex->x, sizeof *app->quad->vertex
-                                       , &app->quad->vertex->c, sizeof *app->quad->vertex
+                                       , &geom->quad->vertex->x, sizeof *geom->quad->vertex
+                                       , &geom->quad->vertex->c, sizeof *geom->quad->vertex
                                        , NULL, 0
-                                       , len(app->quad->vertex) * app->quads
+                                       , len(geom->quad->vertex) * geom->quads
                                        , NULL, 0, 0);
     if (app->draw_bounds) {
         float l = +1.0f/0.0f,
               t = +1.0f/0.0f,
               r = -1.0f/0.0f,
               b = -1.0f/0.0f;
-        for (int i = 0; i <     app->quads        ; i++)
-        for (int j = 0; j < len(app->quad->vertex); j++) {
-            l = fminf(l, app->quad[i].vertex[j].x);
-            t = fminf(t, app->quad[i].vertex[j].y);
-            r = fmaxf(r, app->quad[i].vertex[j].x);
-            b = fmaxf(b, app->quad[i].vertex[j].y);
+        for (int i = 0; i <     geom->quads        ; i++)
+        for (int j = 0; j < len(geom->quad->vertex); j++) {
+            l = fminf(l, geom->quad[i].vertex[j].x);
+            t = fminf(t, geom->quad[i].vertex[j].y);
+            r = fmaxf(r, geom->quad[i].vertex[j].x);
+            b = fmaxf(b, geom->quad[i].vertex[j].y);
         }
         SDL_FRect const bounds = {l,t,r-l,b-t};
         SDL_SetRenderDrawColor(app->renderer, 255,0,0,31);
@@ -274,7 +278,7 @@ static _Bool frame(struct app *app) {
         snprintf(title, sizeof title,
                  "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0f\u00b5s",
                  slides[slide].name, slide, w, h, app->quality,
-                 app->full, app->quads - app->full,
+                 geom->full, geom->quads - geom->full,
                  app->write_png ? 0 : 1e6 * avg_frametime);
         SDL_SetWindowTitle(app->window, title);
     }
@@ -293,8 +297,9 @@ static _Bool frame(struct app *app) {
 }
 
 int main(int argc, char* argv[]) {
-    struct app *app = SDL_calloc(1, sizeof *app);
-    app->start_time = now();
+    struct geom geom = {0};
+    struct app  app  = {0};
+    app.start_time = now();
 
     int w=800, h=600;
     for (int i = 1; i < argc; i++) {
@@ -304,22 +309,21 @@ int main(int argc, char* argv[]) {
             h = H;
             continue;
         }
-        (void)handle_keys(app, argv[i]);
+        (void)handle_keys(&app, argv[i]);
     }
 
-    if (app->write_png) {
-        app->surface = SDL_CreateRGBSurfaceWithFormat(
+    if (app.write_png) {
+        app.surface = SDL_CreateRGBSurfaceWithFormat(
             0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
-        app->renderer = SDL_CreateSoftwareRenderer(app->surface);
+        app.renderer = SDL_CreateSoftwareRenderer(app.surface);
     } else {
          if (0 > SDL_Init(SDL_INIT_VIDEO) ||
-             0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
-                                             &app->window, &app->renderer)) {
-            SDL_free(app);
+            0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
+                                            &app.window, &app.renderer)) {
             SDL_Quit();
             return 1;
         }
-        SDL_SetWindowPosition(app->window, 0,0);
+        SDL_SetWindowPosition(app.window, 0,0);
     }
 
     for (_Bool done = 0; !done;) {
@@ -332,29 +336,28 @@ int main(int argc, char* argv[]) {
                     break;
 
                 case SDL_KEYDOWN:
-                    reset_frametimes(app);
-                    if (handle_keys(app, (char const[]){(char)event.key.keysym.sym,0})) {
+                    reset_frametimes(&app);
+                    if (handle_keys(&app, (char const[]){(char)event.key.keysym.sym,0})) {
                         done = 1;
                     }
                     break;
 
                 case SDL_WINDOWEVENT:
                     if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                        reset_frametimes(app);
+                        reset_frametimes(&app);
                     }
                     break;
             }
         }
         if (!done) {
-            done = frame(app);
+            done = frame(&geom, &app);
         }
     }
 
-    SDL_DestroyRenderer(app->renderer);
-    SDL_FreeSurface    (app->surface);
-    SDL_DestroyWindow  (app->window);
-    SDL_free(app->quad);
-    SDL_free(app);
+    SDL_DestroyRenderer(app.renderer);
+    SDL_FreeSurface    (app.surface);
+    SDL_DestroyWindow  (app.window);
+    SDL_free(geom.quad);
     SDL_Quit();
     return 0;
 }
