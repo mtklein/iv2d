@@ -33,13 +33,8 @@ struct geom {
 };
 
 struct app {
-    SDL_Window   *window;
-    SDL_Renderer *renderer;
-    SDL_Surface  *surface;
-
     double frametime[32];
-    int    next_frametime, paddingB;
-    double time,start_time;
+    int    next_frametime;
 
     int quality, slide;
     int draw_bounds :  1;
@@ -47,7 +42,6 @@ struct app {
     int animate     :  1;
     int stroke      :  1;
     int paddingA    : 28;
-    int paddingC;
 };
 
 static void reset_frametimes(struct app *app) {
@@ -133,23 +127,22 @@ static struct iv2d_setop intersect_halfplanes(struct iv2d_halfplane const hp[], 
     return (struct iv2d_setop){.region={iv2d_intersect}, region, n};
 }
 
-static _Bool frame(struct geom *geom, struct app *app) {
+static _Bool frame(struct geom *geom, struct app *app,
+                   SDL_Renderer *renderer, SDL_Window *window,
+                   double time) {
     geom->quads = geom->full = 0;
-    if (app->animate) {
-        app->time = now() - app->start_time;
-    }
 
-    SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor    (app->renderer, 255,255,255,255);
-    SDL_RenderClear           (app->renderer);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor    (renderer, 255,255,255,255);
+    SDL_RenderClear           (renderer);
 
     int w,h;
-    SDL_GetRendererOutputSize(app->renderer, &w,&h);
+    SDL_GetRendererOutputSize(renderer, &w,&h);
 
     float const cx = 0.5f * (float)w,
                 cy = 0.5f * (float)h,
                 cr = 0.5f*fminf(cx,cy),
-                th = (float)app->time,
+                th = (float)time,
                 ox = cx + (300-cx)*cosf(th) - (200-cy)*sinf(th),
                 oy = cy + (200-cy)*cosf(th) + (300-cx)*sinf(th);
 
@@ -171,10 +164,10 @@ static _Bool frame(struct geom *geom, struct app *app) {
     struct iv2d_halfplane hp[7];
     for (int i = 0; i < len(hp); i++) {
         double const pi = atan(1)*4;
-        hp[i] = halfplane_from(cx + 100 * (float)cos(app->time + (i  ) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i  ) * 2*pi/len(hp)),
-                               cx + 100 * (float)cos(app->time + (i+1) * 2*pi/len(hp)),
-                               cy + 100 * (float)sin(app->time + (i+1) * 2*pi/len(hp)));
+        hp[i] = halfplane_from(cx + 100 * (float)cos(time + (i  ) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(time + (i  ) * 2*pi/len(hp)),
+                               cx + 100 * (float)cos(time + (i+1) * 2*pi/len(hp)),
+                               cy + 100 * (float)sin(time + (i+1) * 2*pi/len(hp)));
     }
     struct iv2d_region const *ngon_region[len(hp)];
     struct iv2d_setop ngon = intersect_halfplanes(hp, len(hp), ngon_region);
@@ -250,7 +243,7 @@ static _Bool frame(struct geom *geom, struct app *app) {
         avg_frametime = sum / (double)nonzero;
     }
 
-    SDL_RenderGeometryRaw(app->renderer, NULL
+    SDL_RenderGeometryRaw(renderer, NULL
                                        , &geom->quad->vertex->x, sizeof *geom->quad->vertex
                                        , &geom->quad->vertex->c, sizeof *geom->quad->vertex
                                        , NULL, 0
@@ -269,37 +262,41 @@ static _Bool frame(struct geom *geom, struct app *app) {
             b = fmaxf(b, geom->quad[i].vertex[j].y);
         }
         SDL_FRect const bounds = {l,t,r-l,b-t};
-        SDL_SetRenderDrawColor(app->renderer, 255,0,0,31);
-        SDL_RenderDrawRectF   (app->renderer, &bounds);
+        SDL_SetRenderDrawColor(renderer, 255,0,0,31);
+        SDL_RenderDrawRectF   (renderer, &bounds);
     }
 
-    if (app->window) {
+    if (window) {
         char title[256];
         snprintf(title, sizeof title,
                  "%s (%d), %dx%d, quality %d, %d full + %d partial, %.0f\u00b5s",
                  slides[slide].name, slide, w, h, app->quality,
                  geom->full, geom->quads - geom->full,
                  app->write_png ? 0 : 1e6 * avg_frametime);
-        SDL_SetWindowTitle(app->window, title);
+        SDL_SetWindowTitle(window, title);
     }
 
     if (app->write_png) {
         SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32);
-        SDL_RenderReadPixels(app->renderer, NULL,
+        SDL_RenderReadPixels(renderer, NULL,
                              SDL_PIXELFORMAT_RGBA32, rgba->pixels, rgba->pitch);
         stbi_write_png_to_func(write_to_stdout, NULL, w,h,4, rgba->pixels, rgba->pitch);
         SDL_FreeSurface(rgba);
         return 1;
     }
 
-    SDL_RenderPresent(app->renderer);
+    SDL_RenderPresent(renderer);
     return 0;
 }
 
 int main(int argc, char* argv[]) {
     struct geom geom = {0};
     struct app  app  = {0};
-    app.start_time = now();
+
+    SDL_Window   *window   = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Surface  *surface  = NULL;
+    double        start_time = now();
 
     int w=800, h=600;
     for (int i = 1; i < argc; i++) {
@@ -313,17 +310,17 @@ int main(int argc, char* argv[]) {
     }
 
     if (app.write_png) {
-        app.surface = SDL_CreateRGBSurfaceWithFormat(
+        surface = SDL_CreateRGBSurfaceWithFormat(
             0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
-        app.renderer = SDL_CreateSoftwareRenderer(app.surface);
+        renderer = SDL_CreateSoftwareRenderer(surface);
     } else {
          if (0 > SDL_Init(SDL_INIT_VIDEO) ||
             0 > SDL_CreateWindowAndRenderer(w, h, SDL_WINDOW_RESIZABLE,
-                                            &app.window, &app.renderer)) {
+                                            &window, &renderer)) {
             SDL_Quit();
             return 1;
         }
-        SDL_SetWindowPosition(app.window, 0,0);
+        SDL_SetWindowPosition(window, 0,0);
     }
 
     for (_Bool done = 0; !done;) {
@@ -350,13 +347,17 @@ int main(int argc, char* argv[]) {
             }
         }
         if (!done) {
-            done = frame(&geom, &app);
+            double time = 0;
+            if (app.animate) {
+                time = now() - start_time;
+            }
+            done = frame(&geom, &app, renderer, window, time);
         }
     }
 
-    SDL_DestroyRenderer(app.renderer);
-    SDL_FreeSurface    (app.surface);
-    SDL_DestroyWindow  (app.window);
+    SDL_DestroyRenderer(renderer);
+    SDL_FreeSurface    (surface);
+    SDL_DestroyWindow  (window);
     SDL_free(geom.quad);
     SDL_Quit();
     return 0;
