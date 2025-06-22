@@ -98,6 +98,10 @@ static inline iv32 iv32_inv(iv32 x) {
     };
 }
 
+static inline iv32 iv32_div(iv32 x, iv32 y) {
+    return iv32_mul(x, iv32_inv(y));
+}
+
 static inline half4 if_then_else16(short4 mask, half4 t, half4 e) {
     return (half4)( ( mask & (short4)t)
                   | (~mask & (short4)e) );
@@ -193,4 +197,8 @@ static inline iv16 iv16_inv(iv16 x) {
         if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo >= 0 & x.hi > 0), 1/x.hi, (half4){0} - 1/0.0f),
         if_then_else16(x.lo > 0 | x.hi < 0 | (x.lo < 0 & x.hi <= 0), 1/x.lo, (half4){0} + 1/0.0f),
     };
+}
+
+static inline iv16 iv16_div(iv16 x, iv16 y) {
+    return iv16_mul(x, iv16_inv(y));
 }

@@ -63,6 +63,26 @@ static void test_mul(void) {
     }
 }
 
+static void test_div(void) {
+    __attribute__((cleanup(free_cleanup)))
+    struct iv2d_region const *region;
+    {
+        struct iv2d_builder *b = iv2d_builder();
+        int const x = iv2d_x(b),
+                  y = iv2d_y(b);
+        region = iv2d_ret(b, iv2d_div(b,x,y));
+    }
+
+    iv32 x = (iv32){{6,-6,-2,3}, {8,8,4,-3}},
+         y = (iv32){{2,-2,-1,3}, {2,4,2,-1}};
+    iv32 z = region->eval(region, x,y);
+    iv32 e = iv32_div(x,y);
+    for (int i = 0; i < 4; i++) {
+        expect(equiv(z.lo[i], e.lo[i]));
+        expect(equiv(z.hi[i], e.hi[i]));
+    }
+}
+
 static void test_min(void) {
     __attribute__((cleanup(free_cleanup)))
     struct iv2d_region const *region;
@@ -207,6 +227,7 @@ int main(void) {
     test_sub();
     test_add();
     test_mul();
+    test_div();
     test_min();
     test_max();
     test_sqrt();

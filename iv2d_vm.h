@@ -14,6 +14,7 @@ int iv2d_uni(struct iv2d_builder*, float const*);
 int iv2d_add(struct iv2d_builder*, int,int);
 int iv2d_sub(struct iv2d_builder*, int,int);
 int iv2d_mul(struct iv2d_builder*, int,int);
+int iv2d_div(struct iv2d_builder*, int,int);
 int iv2d_mad(struct iv2d_builder*, int,int,int);
 
 int iv2d_min(struct iv2d_builder*, int,int);
