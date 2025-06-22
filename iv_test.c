@@ -56,6 +56,25 @@ static void test_mul16(void) {
     expect(equiv(z.hi[3],  15));
 }
 
+static void test_div(void) {
+    iv32 y = (iv32){{2,-2,-1,3},{2,4,2,-1}};
+    iv32 z = iv32_div((iv32){{6,-6,-2,3},{8,8,4,-3}}, y);
+    iv32 e = iv32_mul((iv32){{6,-6,-2,3},{8,8,4,-3}}, iv32_inv(y));
+    for (int i = 0; i < 4; i++) {
+        expect(equiv(z.lo[i], e.lo[i]));
+        expect(equiv(z.hi[i], e.hi[i]));
+    }
+}
+static void test_div16(void) {
+    iv16 y = (iv16){{2,-2,-1,3},{2,4,2,-1}};
+    iv16 z = iv16_div((iv16){{6,-6,-2,3},{8,8,4,-3}}, y);
+    iv16 e = iv16_mul((iv16){{6,-6,-2,3},{8,8,4,-3}}, iv16_inv(y));
+    for (int i = 0; i < 4; i++) {
+        expect(equiv(z.lo[i], e.lo[i]));
+        expect(equiv(z.hi[i], e.hi[i]));
+    }
+}
+
 
 static void test_mad(void) {
     iv32 z = iv32_mad((iv32){{1,-1,-2,-1},{2,2,2,1}},
@@ -329,6 +348,7 @@ int main(void) {
     test_add();    test_add16();
     test_sub();    test_sub16();
     test_mul();    test_mul16();
+    test_div();    test_div16();
     test_mad();    test_mad16();
     test_min();    test_min16();
     test_max();    test_max16();

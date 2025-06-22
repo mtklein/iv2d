@@ -4,7 +4,7 @@
 #include <string.h>
 
 struct inst {
-    enum { RET,IMM,UNI,X,Y,ABS,SQT,SQR,INV,ADD,SUB,MUL,MIN,MAX} op;
+    enum { RET,IMM,UNI,X,Y,ABS,SQT,SQR,INV,ADD,SUB,MUL,DIV,MIN,MAX} op;
     int          lhs,rhs;
     float        imm;
     float const *ptr;
@@ -46,6 +46,7 @@ int iv2d_inv   (builder *b, int v) { return push(b, (struct inst){.op=INV, .rhs=
 int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
 int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
 int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r}); }
+int iv2d_div(builder *b, int l, int r) { return push(b, (struct inst){.op=DIV, .lhs=l, .rhs=r}); }
 int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r}); }
 int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r}); }
 
@@ -87,6 +88,7 @@ static iv32 run_program(struct iv2d_region const *region, iv32 x, iv32 y) {
             case ADD: *next++ = iv32_add(v[inst->lhs], v[inst->rhs]); break;
             case SUB: *next++ = iv32_sub(v[inst->lhs], v[inst->rhs]); break;
             case MUL: *next++ = iv32_mul(v[inst->lhs], v[inst->rhs]); break;
+            case DIV: *next++ = iv32_div(v[inst->lhs], v[inst->rhs]); break;
             case MIN: *next++ = iv32_min(v[inst->lhs], v[inst->rhs]); break;
             case MAX: *next++ = iv32_max(v[inst->lhs], v[inst->rhs]); break;
 
