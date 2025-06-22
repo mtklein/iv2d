@@ -1,6 +1,6 @@
 Test with both `ninja` and `ninja -f dbg`.
-Add any images under `gold/` that change when tests run to the pull request
-alongside the code that caused them.
+Because this environment cannot push PNG files, **do not** add or modify
+anything under `gold/`.
 
 Model code formatting on existing code,
 and preserve the formatting of existing code.
