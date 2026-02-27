@@ -15,6 +15,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 static int wrap(int x, int n) {
     return ((x % n) + n) % n;
@@ -42,10 +43,11 @@ struct app {
 
     int quality, slide;
     int draw_bounds :  1;
+    int bench       :  1;
     int write_png   :  1;
     int animate     :  1;
     int stroke      :  1;
-    int             : 28;
+    int             : 27;
 
     double frametime[32];
     int    next_frametime;
@@ -404,7 +406,11 @@ static _Bool frame(struct app *app) {
                  app->write_png ? 0 : 1e6 * avg_frametime);
         SDL_SetWindowTitle(app->window, title);
     }
-
+    if (app->bench) {
+        printf("%10s %10.2f\u00b5s\n", slides[slide].name, 1e6 * avg_frametime);
+        reset_frametimes(app);
+        return ++app->slide == len(slides);
+    }
     if (app->write_png) {
         SDL_Surface *rgba = SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_RGBA32);
         SDL_RenderReadPixels(app->renderer, NULL,
@@ -430,10 +436,14 @@ int main(int argc, char* argv[]) {
             h = H;
             continue;
         }
+        if (0 == strcmp(argv[i], "bench")) {
+            app->bench ^= 1;
+            continue;
+        }
         (void)handle_keys(app, argv[i]);
     }
 
-    if (app->write_png) {
+    if (app->bench || app->write_png) {
         app->surface = SDL_CreateRGBSurfaceWithFormat(
             0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
         app->renderer = SDL_CreateSoftwareRenderer(app->surface);
@@ -448,7 +458,11 @@ int main(int argc, char* argv[]) {
         SDL_SetWindowPosition(app->window, 0,0);
     }
 
-    for (_Bool done = 0; !done;) {
+    if (app->bench) {
+        while (!frame(app));
+    }
+
+    for (_Bool done = app->bench; !done;) {
         for (SDL_Event event; SDL_PollEvent(&event);) {
             switch (event.type) {
                 default: break;
