@@ -12,7 +12,8 @@ struct inst {
 
 typedef struct iv2d_builder {
     struct inst *inst;
-    int          insts,padding;
+    int          insts;
+    int          :32;
 } builder;
 
 static _Bool is_pow2_or_zero(int n) {

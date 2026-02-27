@@ -45,10 +45,11 @@ struct app {
     int write_png   :  1;
     int animate     :  1;
     int stroke      :  1;
-    int paddingA    : 28;
+    int             : 28;
 
     double frametime[32];
-    int    next_frametime, paddingB;
+    int    next_frametime;
+    int    :32;
 
     double time,start_time;
 };
