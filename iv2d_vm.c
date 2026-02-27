@@ -62,14 +62,10 @@ struct program {
 static iv32 run_program(struct iv2d_region const *region, iv32 x, iv32 y) {
     struct program const *p = (struct program const*)region;
 
-    _Thread_local static struct program const *active_program;
     _Thread_local static iv32 *v;
-    if (active_program != p) {
-        active_program  = p;
-        v = realloc(v, (size_t)p->vals * sizeof *v);
-        for (int i = 0; i < p->imms; i++) {
-            v[i] = as_iv32(p->inst[i].imm);
-        }
+    v = realloc(v, (size_t)p->vals * sizeof *v);
+    for (int i = 0; i < p->imms; i++) {
+        v[i] = as_iv32(p->inst[i].imm);
     }
 
     iv32 *next = v+p->imms;
