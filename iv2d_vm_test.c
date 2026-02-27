@@ -138,24 +138,6 @@ static void test_sqrt(void) {
     expect(equiv(z.hi[0], e.hi[0]));
 }
 
-static void test_square(void) {
-    __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region const *region;
-    {
-        struct iv2d_builder *b = iv2d_builder();
-        int const x = iv2d_x(b);
-        region = iv2d_ret(b, iv2d_square(b,x));
-    }
-
-    iv32 x = (iv32){{3,-3,-5}, {4,4,-1}};
-    iv32 z = region->eval(region, x, as_iv32(0));
-    iv32 e = iv32_square(x);
-    for (int i = 0; i < 3; i++) {
-        expect(equiv(z.lo[i], e.lo[i]));
-        expect(equiv(z.hi[i], e.hi[i]));
-    }
-}
-
 static void test_abs(void) {
     __attribute__((cleanup(free_cleanup)))
     struct iv2d_region const *region;
@@ -169,24 +151,6 @@ static void test_abs(void) {
     iv32 z = region->eval(region, x, as_iv32(0));
     iv32 e = iv32_abs(x);
     for (int i = 0; i < 3; i++) {
-        expect(equiv(z.lo[i], e.lo[i]));
-        expect(equiv(z.hi[i], e.hi[i]));
-    }
-}
-
-static void test_inv(void) {
-    __attribute__((cleanup(free_cleanup)))
-    struct iv2d_region const *region;
-    {
-        struct iv2d_builder *b = iv2d_builder();
-        int const x = iv2d_x(b);
-        region = iv2d_ret(b, iv2d_inv(b,x));
-    }
-
-    iv32 x = (iv32){{+1,-4,-1,+0}, {+4,-1,+4,+0}};
-    iv32 z = region->eval(region, x, as_iv32(0));
-    iv32 e = iv32_inv(x);
-    for (int i = 0; i < 4; i++) {
         expect(equiv(z.lo[i], e.lo[i]));
         expect(equiv(z.hi[i], e.hi[i]));
     }
@@ -231,10 +195,7 @@ int main(void) {
     test_min();
     test_max();
     test_sqrt();
-    test_square();
     test_abs();
-    test_inv();
     test_mad_imm_uni();
     return 0;
 }
-

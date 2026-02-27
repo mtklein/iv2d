@@ -40,13 +40,21 @@ int iv2d_uni(builder *b, float const *ptr) { return push(b, (struct inst){.op=UN
 
 int iv2d_abs   (builder *b, int v) { return push(b, (struct inst){.op=ABS, .rhs=v}); }
 int iv2d_sqrt  (builder *b, int v) { return push(b, (struct inst){.op=SQT, .rhs=v}); }
-int iv2d_square(builder *b, int v) { return push(b, (struct inst){.op=SQR, .rhs=v}); }
-int iv2d_inv   (builder *b, int v) { return push(b, (struct inst){.op=INV, .rhs=v}); }
 
 int iv2d_sub(builder *b, int l, int r) { return push(b, (struct inst){.op=SUB, .lhs=l, .rhs=r}); }
 int iv2d_add(builder *b, int l, int r) { return push(b, (struct inst){.op=ADD, .lhs=l, .rhs=r}); }
-int iv2d_mul(builder *b, int l, int r) { return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r}); }
-int iv2d_div(builder *b, int l, int r) { return push(b, (struct inst){.op=DIV, .lhs=l, .rhs=r}); }
+int iv2d_mul(builder *b, int l, int r) {
+    if (l == r) {
+        return push(b, (struct inst){.op=SQR, .rhs=l});
+    }
+    return push(b, (struct inst){.op=MUL, .lhs=l, .rhs=r});
+}
+int iv2d_div(builder *b, int l, int r) {
+    if (b->inst[l].op == IMM && b->inst[l].imm == 1.0f) {
+        return push(b, (struct inst){.op=INV, .rhs=r});
+    }
+    return push(b, (struct inst){.op=DIV, .lhs=l, .rhs=r});
+}
 int iv2d_min(builder *b, int l, int r) { return push(b, (struct inst){.op=MIN, .lhs=l, .rhs=r}); }
 int iv2d_max(builder *b, int l, int r) { return push(b, (struct inst){.op=MAX, .lhs=l, .rhs=r}); }
 

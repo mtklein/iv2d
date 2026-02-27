@@ -66,7 +66,7 @@ struct iv2d_region const* prospero_region(float const *w, float const *h) {
             continue;
         }
         if (1 == sscanf(c, "square _%x", &r)) {
-            val[id] = iv2d_square(b, val[r]);
+            val[id] = iv2d_mul(b, val[r], val[r]);
             continue;
         }
         if (1 == sscanf(c, "sqrt _%x", &r)) {

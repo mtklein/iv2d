@@ -154,7 +154,7 @@ static int capsule_sdf(struct iv2d_builder *b,
     int hx = iv2d_sub(b, px, iv2d_mul(b, h, iv2d_imm(b, dx))),
         hy = iv2d_sub(b, py, iv2d_mul(b, h, iv2d_imm(b, dy)));
 
-    int len = iv2d_sqrt(b, iv2d_add(b, iv2d_square(b,hx), iv2d_square(b,hy)));
+    int len = iv2d_sqrt(b, iv2d_add(b, iv2d_mul(b,hx,hx), iv2d_mul(b,hy,hy)));
     return iv2d_sub(b, len, iv2d_imm(b, r));
 }
 
@@ -302,16 +302,20 @@ static _Bool frame(struct app *app) {
 
         int center_circle;
         {
-            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&cx))),
-                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&cy))),
-                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
+            int const dx = iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&cx)),
+                      dy = iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&cy)),
+                     dx2 = iv2d_mul(b, dx,dx),
+                     dy2 = iv2d_mul(b, dy,dy),
+                     len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
             center_circle = iv2d_sub(b, len, iv2d_uni(b,&cr));
         }
         int orbit_circle;
         {
-            int const dx2 = iv2d_square(b, iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&ox))),
-                      dy2 = iv2d_square(b, iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&oy))),
-                      len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
+            int const dx = iv2d_sub(b, iv2d_x(b), iv2d_uni(b,&ox)),
+                      dy = iv2d_sub(b, iv2d_y(b), iv2d_uni(b,&oy)),
+                     dx2 = iv2d_mul(b, dx,dx),
+                     dy2 = iv2d_mul(b, dy,dy),
+                     len = iv2d_sqrt(b, iv2d_add(b, dx2, dy2));
             orbit_circle  = iv2d_sub(b, len, iv2d_imm(b,100));
         }
         vm_union = iv2d_ret(b, iv2d_min(b, center_circle,orbit_circle));
