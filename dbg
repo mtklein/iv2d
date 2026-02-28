@@ -1,2 +1,3 @@
 include build.ninja
-cc = $cc -fsanitize=address,integer,undefined
+san = address,integer,undefined
+cc = $cc -fsanitize=$san -fno-sanitize-recover=$san

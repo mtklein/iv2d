@@ -7,8 +7,10 @@
 #include "stb/stb_image_write.h"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
+#pragma clang attribute push (__attribute__((no_sanitize("integer", "undefined"))), apply_to=function)
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
+#pragma clang attribute pop
 #pragma clang diagnostic pop
 #include <stdlib.h>
 #include <SDL2/SDL.h>
@@ -27,7 +29,6 @@ static void write_to_stdout(void *ctx, void *buf, int len) {
 }
 
 // TODO
-//   - try using stbtt_FlattenCurves() to make some piecewise capsules
 //   - tiger
 
 struct quad {
@@ -161,12 +162,7 @@ static int capsule_sdf(struct iv2d_builder *b,
     return iv2d_sub(b, len, iv2d_imm(b, r));
 }
 
-static struct iv2d_region const* hamburgefonsiv_region(void) {
-    static struct iv2d_region const *region;
-    if (region) {
-        return region;
-    }
-
+static char* load_helvetica(stbtt_fontinfo *font) {
     char const *path[] = {
         "/System/Library/Fonts/Helvetica.ttc",
         "/System/Library/Fonts/Supplemental/Helvetica.ttf",
@@ -185,12 +181,26 @@ static struct iv2d_region const* hamburgefonsiv_region(void) {
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    unsigned char *data = malloc((size_t)size);
+    char *data = malloc((size_t)size);
     fread(data, 1, (size_t)size, f);
     fclose(f);
 
+    void const *font_data = data;
+    stbtt_InitFont(font, font_data, stbtt_GetFontOffsetForIndex(font_data,0));
+    return data;
+}
+
+static struct iv2d_region const* hamburgefonsiv_region(void) {
+    static struct iv2d_region const *region;
+    if (region) {
+        return region;
+    }
+
     stbtt_fontinfo font;
-    stbtt_InitFont(&font, data, stbtt_GetFontOffsetForIndex(data,0));
+    char *data = load_helvetica(&font);
+    if (!data) {
+        return NULL;
+    }
 
     int ascent, descent, line_gap;
     stbtt_GetFontVMetrics(&font, &ascent, &descent, &line_gap);
@@ -246,6 +256,117 @@ static struct iv2d_region const* hamburgefonsiv_region(void) {
     free(data);
 
     region = iv2d_ret(b, out);
+    return region;
+}
+
+static struct iv2d_region const* hamburgefonsiv_sdf_region(void) {
+    static struct iv2d_region const *region;
+    if (region) {
+        return region;
+    }
+
+    stbtt_fontinfo font;
+    char *data = load_helvetica(&font);
+    if (!data) {
+        return NULL;
+    }
+
+    int ascent, descent, line_gap;
+    stbtt_GetFontVMetrics(&font, &ascent, &descent, &line_gap);
+
+    float const scale = stbtt_ScaleForPixelHeight(&font, 100),
+                baseline = (float)ascent * scale,
+                onedge_value = 180,
+                pixel_dist_scale = 36,
+                outside = onedge_value / pixel_dist_scale;
+    int const padding = 8;
+    char const text[] = "Hamburgefonsiv";
+
+    int prev = 0;
+    float pen_x = 0,
+          l = +1.0f/0.0f,
+          t = +1.0f/0.0f,
+          r = -1.0f/0.0f,
+          b = -1.0f/0.0f;
+    for (char const *c = text; *c; c++) {
+        int const codepoint = *c,
+                  glyph = stbtt_FindGlyphIndex(&font, codepoint);
+        int const kern = stbtt_GetCodepointKernAdvance(&font, prev, codepoint);
+        pen_x += kern * scale;
+        prev = codepoint;
+
+        int w,h,xoff,yoff;
+        unsigned char *sdf = stbtt_GetGlyphSDF(&font, scale, glyph, padding,
+                                               (unsigned char)onedge_value, pixel_dist_scale,
+                                               &w,&h, &xoff,&yoff);
+        if (sdf) {
+            l = fminf(l, pen_x + xoff);
+            t = fminf(t, baseline + yoff);
+            r = fmaxf(r, pen_x + xoff + w);
+            b = fmaxf(b, baseline + yoff + h);
+            stbtt_FreeSDF(sdf, NULL);
+        }
+
+        int adv;
+        stbtt_GetGlyphHMetrics(&font, glyph, &adv, NULL);
+        pen_x += (float)adv * scale;
+    }
+
+    float const text_w = ceilf(r - l),
+                text_h = ceilf(b - t);
+    int const width = (int)text_w,
+              height = (int)text_h;
+    _Float16 *buf = malloc((size_t)(width * height) * sizeof *buf);
+    for (int i = 0; i < width * height; i++) {
+        buf[i] = (_Float16)outside;
+    }
+
+    prev = 0;
+    pen_x = 0;
+    for (char const *c = text; *c; c++) {
+        int const codepoint = *c,
+                  glyph = stbtt_FindGlyphIndex(&font, codepoint);
+        int const kern = stbtt_GetCodepointKernAdvance(&font, prev, codepoint);
+        pen_x += kern * scale;
+        prev = codepoint;
+
+        int w,h,xoff,yoff;
+        unsigned char *sdf = stbtt_GetGlyphSDF(&font, scale, glyph, padding,
+                                               (unsigned char)onedge_value, pixel_dist_scale,
+                                               &w,&h, &xoff,&yoff);
+        if (sdf) {
+            float const glyph_x = floorf(pen_x + xoff - l),
+                        glyph_y = floorf(baseline + yoff - t);
+            int const gx = (int)glyph_x,
+                      gy = (int)glyph_y;
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    float const d = (onedge_value - sdf[y*w + x]) / pixel_dist_scale;
+                    _Float16 *dst = buf + (gy+y) * width + (gx+x);
+                    float const current = (float)*dst;
+                    *dst = (_Float16)fminf(current, d);
+                }
+            }
+            stbtt_FreeSDF(sdf, NULL);
+        }
+
+        int adv;
+        stbtt_GetGlyphHMetrics(&font, glyph, &adv, NULL);
+        pen_x += (float)adv * scale;
+    }
+
+    free(data);
+
+    struct iv2d_sdf *text_sdf = malloc(sizeof *text_sdf);
+    *text_sdf = (struct iv2d_sdf){
+        .region={iv2d_sdf},
+        .sdf=buf,
+        .x=l,
+        .y=t,
+        .w=width,
+        .h=height,
+    };
+    region = &text_sdf->region;
     return region;
 }
 
@@ -326,6 +447,7 @@ static _Bool frame(struct app *app) {
 
     static struct iv2d_region const *prospero = NULL;
     static struct iv2d_region const *helvetica = NULL;
+    static struct iv2d_region const *helvetica_sdf = NULL;
     struct {
         struct iv2d_region const *region;
         char const               *name;
@@ -338,6 +460,7 @@ static _Bool frame(struct app *app) {
         {&ngon      .region,  ngon_name  },
         {vm_union,           "vm union"  },
         {helvetica,          "helvetica" },
+        {helvetica_sdf,      "helvetica sdf"},
         {prospero,           "prospero"  },
     };
     int const slide = wrap(app->slide, len(slides));
@@ -350,6 +473,9 @@ static _Bool frame(struct app *app) {
     }
     if (helvetica == NULL && 0 == strcmp(slides[slide].name, "helvetica")) {
         region = helvetica = hamburgefonsiv_region();
+    }
+    if (helvetica_sdf == NULL && 0 == strcmp(slides[slide].name, "helvetica sdf")) {
+        region = helvetica_sdf = hamburgefonsiv_sdf_region();
     }
 
     struct iv2d_stroke stroke = {.region={iv2d_stroke}, region, 2};
@@ -407,7 +533,7 @@ static _Bool frame(struct app *app) {
         SDL_SetWindowTitle(app->window, title);
     }
     if (app->bench) {
-        printf("%10s %10.2f\u00b5s\n", slides[slide].name, 1e6 * avg_frametime);
+        printf("%16s %10.2f\u00b5s\n", slides[slide].name, 1e6 * avg_frametime);
         reset_frametimes(app);
         return ++app->slide == len(slides);
     }

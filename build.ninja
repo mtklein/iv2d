@@ -102,3 +102,12 @@ build gold/vm-union-3.png: run out/demo
     args = p 6 800x600 +++
 build gold/vm-union-5.png: run out/demo
     args = p 6 800x600 +++++
+
+build gold/helvetica-sdf-0.png: run out/demo
+    args = p 8 800x600
+build gold/helvetica-sdf-1.png: run out/demo
+    args = p 8 800x600 +
+build gold/helvetica-sdf-3.png: run out/demo
+    args = p 8 800x600 +++
+build gold/helvetica-sdf-5.png: run out/demo
+    args = p 8 800x600 +++++

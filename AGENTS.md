@@ -1,6 +1,5 @@
-Test with both `ninja` and `ninja -f dbg`.
-Because this environment cannot push PNG files, **do not** add or modify
-anything under `gold/`.
+Test with `ninja -f dbg && ninja`; the two can't
+run in parallel, and we want the vanilla `ninja` last.
 
 Model code formatting on existing code,
 and preserve the formatting of existing code.

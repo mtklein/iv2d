@@ -45,3 +45,11 @@ struct iv2d_halfplane {
     int                :32;
 };
 iv32 iv2d_halfplane(struct iv2d_region const*, iv32 x, iv32 y);
+
+struct iv2d_sdf {
+    struct iv2d_region region;
+    _Float16 const    *sdf;
+    float              x,y;
+    int                w,h;
+};
+iv32 iv2d_sdf(struct iv2d_region const*, iv32 x, iv32 y);

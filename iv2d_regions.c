@@ -1,4 +1,5 @@
 #include "iv2d_regions.h"
+#include <math.h>
 
 iv32 iv2d_circle(struct iv2d_region const *region, iv32 x, iv32 y) {
     struct iv2d_circle const *c = (struct iv2d_circle const*)region;
@@ -70,4 +71,47 @@ iv32 iv2d_halfplane(struct iv2d_region const *region, iv32 x, iv32 y) {
     return iv32_sub(iv32_add(iv32_mul(x, as_iv32(hp->nx)),
                              iv32_mul(y, as_iv32(hp->ny))),
                     as_iv32(hp->d));
+}
+
+static float bilerp(struct iv2d_sdf const *sdf, float x, float y) {
+    float const fx0 = floorf(x),
+                fy0 = floorf(y);
+    int const x0 = (int)fx0,
+              y0 = (int)fy0,
+              x1 = x0+1 < sdf->w ? x0+1 : x0,
+              y1 = y0+1 < sdf->h ? y0+1 : y0;
+    float const tx = x - x0,
+                ty = y - y0;
+    float const a = (float)sdf->sdf[y0*sdf->w + x0],
+                b = (float)sdf->sdf[y0*sdf->w + x1],
+                c = (float)sdf->sdf[y1*sdf->w + x0],
+                d = (float)sdf->sdf[y1*sdf->w + x1];
+    return (1-tx) * ((1-ty)*a + ty*c)
+         +    tx  * ((1-ty)*b + ty*d);
+}
+
+static float sample_sdf(struct iv2d_sdf const *sdf, float x, float y) {
+    float const sx = x - sdf->x - 0.5f,
+                sy = y - sdf->y - 0.5f,
+                cx = fminf(fmaxf(sx, 0), sdf->w-1),
+                cy = fminf(fmaxf(sy, 0), sdf->h-1),
+                dx = sx - cx,
+                dy = sy - cy;
+    return bilerp(sdf, cx,cy) + sqrtf(dx*dx + dy*dy);
+}
+
+iv32 iv2d_sdf(struct iv2d_region const *region, iv32 x, iv32 y) {
+    struct iv2d_sdf const *sdf = (struct iv2d_sdf const*)region;
+    iv32 v = {0};
+    for (int i = 0; i < 4; i++) {
+        float const cx = 0.5f * (x.lo[i] + x.hi[i]),
+                    cy = 0.5f * (y.lo[i] + y.hi[i]),
+                    rx = 0.5f * (x.hi[i] - x.lo[i]),
+                    ry = 0.5f * (y.hi[i] - y.lo[i]),
+                    r  = sqrtf(rx*rx + ry*ry),
+                    c  = sample_sdf(sdf, cx,cy);
+        v.lo[i] = c - r;
+        v.hi[i] = c + r;
+    }
+    return v;
 }
