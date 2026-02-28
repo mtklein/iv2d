@@ -37,16 +37,12 @@ build out/iv2d_regions_test.o: compile iv2d_regions_test.c
 build out/iv2d_regions_test:   link out/iv2d_regions_test.o out/iv2d.o out/iv2d_regions.o
 build out/iv2d_regions_test.ok: run out/iv2d_regions_test
 
-build out/stb_image_write.o: compile stb_image_write.c
-    flags = -fno-sanitize=integer
-
 build out/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
 build out/demo: link out/demo.o out/iv2d.o $
                                 out/iv2d_regions.o $
                                 out/iv2d_vm.o $
-                                out/prospero.o $
-                                out/stb_image_write.o
+                                out/prospero.o
     flags = -L/opt/homebrew/lib -lSDL2
 
 build gold/slim_difference-0.png: run out/demo

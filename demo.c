@@ -4,7 +4,13 @@
 #include "iv2d_vm.h"
 #include "len.h"
 #include "prospero.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#pragma clang attribute push (__attribute__((no_sanitize("integer", "undefined"))), apply_to=function)
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
+#pragma clang attribute pop
+#pragma clang diagnostic pop
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #pragma clang attribute push (__attribute__((no_sanitize("integer", "undefined"))), apply_to=function)
