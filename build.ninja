@@ -9,131 +9,131 @@ rule run
 rule compare
     command = cmp -s $in > $out
 
-build gold/slim_difference-0.png: run out/dbg/demo
-    args = p 2 600x402
-build gold/slim_difference-1.png: run out/dbg/demo
-    args = p 2 600x402 +
-build gold/slim_difference-3.png: run out/dbg/demo
-    args = p 2 600x402 +++
-build gold/slim_difference-5.png: run out/dbg/demo
-    args = p 2 600x402 +++++
+build gold/slim_difference-0.png: run out/dbg/gold
+    args = 2 0 600x402
+build gold/slim_difference-1.png: run out/dbg/gold
+    args = 2 1 600x402
+build gold/slim_difference-3.png: run out/dbg/gold
+    args = 2 3 600x402
+build gold/slim_difference-5.png: run out/dbg/gold
+    args = 2 5 600x402
 
-build gold/fat_difference-0.png: run out/dbg/demo
-    args = p 2 800x600
-build gold/fat_difference-1.png: run out/dbg/demo
-    args = p 2 800x600 +
-build gold/fat_difference-3.png: run out/dbg/demo
-    args = p 2 800x600 +++
-build gold/fat_difference-5.png: run out/dbg/demo
-    args = p 2 800x600 +++++
+build gold/fat_difference-0.png: run out/dbg/gold
+    args = 2 0 800x600
+build gold/fat_difference-1.png: run out/dbg/gold
+    args = 2 1 800x600
+build gold/fat_difference-3.png: run out/dbg/gold
+    args = 2 3 800x600
+build gold/fat_difference-5.png: run out/dbg/gold
+    args = 2 5 800x600
 
-build gold/capsule-0.png: run out/dbg/demo
-    args = p 3 800x600
-build gold/capsule-1.png: run out/dbg/demo
-    args = p 3 800x600 +
-build gold/capsule-3.png: run out/dbg/demo
-    args = p 3 800x600 +++
-build gold/capsule-5.png: run out/dbg/demo
-    args = p 3 800x600 +++++
+build gold/capsule-0.png: run out/dbg/gold
+    args = 3 0 800x600
+build gold/capsule-1.png: run out/dbg/gold
+    args = 3 1 800x600
+build gold/capsule-3.png: run out/dbg/gold
+    args = 3 3 800x600
+build gold/capsule-5.png: run out/dbg/gold
+    args = 3 5 800x600
 
-build gold/stroke-ngon-0.png: run out/dbg/demo
-    args = p 5s 800x600
-build gold/stroke-ngon-1.png: run out/dbg/demo
-    args = p 5s 800x600 +
-build gold/stroke-ngon-3.png: run out/dbg/demo
-    args = p 5s 800x600 +++
-build gold/stroke-ngon-5.png: run out/dbg/demo
-    args = p 5s 800x600 +++++
+build gold/stroke-ngon-0.png: run out/dbg/gold
+    args = 5 0 800x600 -s
+build gold/stroke-ngon-1.png: run out/dbg/gold
+    args = 5 1 800x600 -s
+build gold/stroke-ngon-3.png: run out/dbg/gold
+    args = 5 3 800x600 -s
+build gold/stroke-ngon-5.png: run out/dbg/gold
+    args = 5 5 800x600 -s
 
-build gold/union-0.png: run out/dbg/demo
-    args = p 0 800x600
-build gold/union-1.png: run out/dbg/demo
-    args = p 0 800x600 +
-build gold/union-3.png: run out/dbg/demo
-    args = p 0 800x600 +++
-build gold/union-5.png: run out/dbg/demo
-    args = p 0 800x600 +++++
+build gold/union-0.png: run out/dbg/gold
+    args = 0 0 800x600
+build gold/union-1.png: run out/dbg/gold
+    args = 0 1 800x600
+build gold/union-3.png: run out/dbg/gold
+    args = 0 3 800x600
+build gold/union-5.png: run out/dbg/gold
+    args = 0 5 800x600
 
-build gold/vm-union-0.png: run out/dbg/demo
-    args = p 6 800x600
-build gold/vm-union-1.png: run out/dbg/demo
-    args = p 6 800x600 +
-build gold/vm-union-3.png: run out/dbg/demo
-    args = p 6 800x600 +++
-build gold/vm-union-5.png: run out/dbg/demo
-    args = p 6 800x600 +++++
+build gold/vm-union-0.png: run out/dbg/gold
+    args = 6 0 800x600
+build gold/vm-union-1.png: run out/dbg/gold
+    args = 6 1 800x600
+build gold/vm-union-3.png: run out/dbg/gold
+    args = 6 3 800x600
+build gold/vm-union-5.png: run out/dbg/gold
+    args = 6 5 800x600
 
-build gold/helvetica-sdf-0.png: run out/dbg/demo
-    args = p 8 800x600
-build gold/helvetica-sdf-1.png: run out/dbg/demo
-    args = p 8 800x600 +
-build gold/helvetica-sdf-3.png: run out/dbg/demo
-    args = p 8 800x600 +++
-build gold/helvetica-sdf-5.png: run out/dbg/demo
-    args = p 8 800x600 +++++
+build gold/helvetica-sdf-0.png: run out/dbg/gold
+    args = 8 0 800x600
+build gold/helvetica-sdf-1.png: run out/dbg/gold
+    args = 8 1 800x600
+build gold/helvetica-sdf-3.png: run out/dbg/gold
+    args = 8 3 800x600
+build gold/helvetica-sdf-5.png: run out/dbg/gold
+    args = 8 5 800x600
 
-build out/slim_difference-0.png: run out/demo
-    args = p 2 600x402
-build out/slim_difference-1.png: run out/demo
-    args = p 2 600x402 +
-build out/slim_difference-3.png: run out/demo
-    args = p 2 600x402 +++
-build out/slim_difference-5.png: run out/demo
-    args = p 2 600x402 +++++
+build out/slim_difference-0.png: run out/gold
+    args = 2 0 600x402
+build out/slim_difference-1.png: run out/gold
+    args = 2 1 600x402
+build out/slim_difference-3.png: run out/gold
+    args = 2 3 600x402
+build out/slim_difference-5.png: run out/gold
+    args = 2 5 600x402
 
-build out/fat_difference-0.png: run out/demo
-    args = p 2 800x600
-build out/fat_difference-1.png: run out/demo
-    args = p 2 800x600 +
-build out/fat_difference-3.png: run out/demo
-    args = p 2 800x600 +++
-build out/fat_difference-5.png: run out/demo
-    args = p 2 800x600 +++++
+build out/fat_difference-0.png: run out/gold
+    args = 2 0 800x600
+build out/fat_difference-1.png: run out/gold
+    args = 2 1 800x600
+build out/fat_difference-3.png: run out/gold
+    args = 2 3 800x600
+build out/fat_difference-5.png: run out/gold
+    args = 2 5 800x600
 
-build out/capsule-0.png: run out/demo
-    args = p 3 800x600
-build out/capsule-1.png: run out/demo
-    args = p 3 800x600 +
-build out/capsule-3.png: run out/demo
-    args = p 3 800x600 +++
-build out/capsule-5.png: run out/demo
-    args = p 3 800x600 +++++
+build out/capsule-0.png: run out/gold
+    args = 3 0 800x600
+build out/capsule-1.png: run out/gold
+    args = 3 1 800x600
+build out/capsule-3.png: run out/gold
+    args = 3 3 800x600
+build out/capsule-5.png: run out/gold
+    args = 3 5 800x600
 
-build out/stroke-ngon-0.png: run out/demo
-    args = p 5s 800x600
-build out/stroke-ngon-1.png: run out/demo
-    args = p 5s 800x600 +
-build out/stroke-ngon-3.png: run out/demo
-    args = p 5s 800x600 +++
-build out/stroke-ngon-5.png: run out/demo
-    args = p 5s 800x600 +++++
+build out/stroke-ngon-0.png: run out/gold
+    args = 5 0 800x600 -s
+build out/stroke-ngon-1.png: run out/gold
+    args = 5 1 800x600 -s
+build out/stroke-ngon-3.png: run out/gold
+    args = 5 3 800x600 -s
+build out/stroke-ngon-5.png: run out/gold
+    args = 5 5 800x600 -s
 
-build out/union-0.png: run out/demo
-    args = p 0 800x600
-build out/union-1.png: run out/demo
-    args = p 0 800x600 +
-build out/union-3.png: run out/demo
-    args = p 0 800x600 +++
-build out/union-5.png: run out/demo
-    args = p 0 800x600 +++++
+build out/union-0.png: run out/gold
+    args = 0 0 800x600
+build out/union-1.png: run out/gold
+    args = 0 1 800x600
+build out/union-3.png: run out/gold
+    args = 0 3 800x600
+build out/union-5.png: run out/gold
+    args = 0 5 800x600
 
-build out/vm-union-0.png: run out/demo
-    args = p 6 800x600
-build out/vm-union-1.png: run out/demo
-    args = p 6 800x600 +
-build out/vm-union-3.png: run out/demo
-    args = p 6 800x600 +++
-build out/vm-union-5.png: run out/demo
-    args = p 6 800x600 +++++
+build out/vm-union-0.png: run out/gold
+    args = 6 0 800x600
+build out/vm-union-1.png: run out/gold
+    args = 6 1 800x600
+build out/vm-union-3.png: run out/gold
+    args = 6 3 800x600
+build out/vm-union-5.png: run out/gold
+    args = 6 5 800x600
 
-build out/helvetica-sdf-0.png: run out/demo
-    args = p 8 800x600
-build out/helvetica-sdf-1.png: run out/demo
-    args = p 8 800x600 +
-build out/helvetica-sdf-3.png: run out/demo
-    args = p 8 800x600 +++
-build out/helvetica-sdf-5.png: run out/demo
-    args = p 8 800x600 +++++
+build out/helvetica-sdf-0.png: run out/gold
+    args = 8 0 800x600
+build out/helvetica-sdf-1.png: run out/gold
+    args = 8 1 800x600
+build out/helvetica-sdf-3.png: run out/gold
+    args = 8 3 800x600
+build out/helvetica-sdf-5.png: run out/gold
+    args = 8 5 800x600
 
 build out/slim_difference-0.eq: compare gold/slim_difference-0.png out/slim_difference-0.png
 build out/slim_difference-1.eq: compare gold/slim_difference-1.png out/slim_difference-1.png
