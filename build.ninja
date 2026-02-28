@@ -6,6 +6,9 @@ subninja dbg.ninja
 rule run
     command = ./$in $args > $out
 
+rule compare
+    command = cmp -s $in > $out
+
 build gold/slim_difference-0.png: run out/dbg/demo
     args = p 2 600x402
 build gold/slim_difference-1.png: run out/dbg/demo
@@ -68,3 +71,101 @@ build gold/helvetica-sdf-3.png: run out/dbg/demo
     args = p 8 800x600 +++
 build gold/helvetica-sdf-5.png: run out/dbg/demo
     args = p 8 800x600 +++++
+
+build out/slim_difference-0.png: run out/demo
+    args = p 2 600x402
+build out/slim_difference-1.png: run out/demo
+    args = p 2 600x402 +
+build out/slim_difference-3.png: run out/demo
+    args = p 2 600x402 +++
+build out/slim_difference-5.png: run out/demo
+    args = p 2 600x402 +++++
+
+build out/fat_difference-0.png: run out/demo
+    args = p 2 800x600
+build out/fat_difference-1.png: run out/demo
+    args = p 2 800x600 +
+build out/fat_difference-3.png: run out/demo
+    args = p 2 800x600 +++
+build out/fat_difference-5.png: run out/demo
+    args = p 2 800x600 +++++
+
+build out/capsule-0.png: run out/demo
+    args = p 3 800x600
+build out/capsule-1.png: run out/demo
+    args = p 3 800x600 +
+build out/capsule-3.png: run out/demo
+    args = p 3 800x600 +++
+build out/capsule-5.png: run out/demo
+    args = p 3 800x600 +++++
+
+build out/stroke-ngon-0.png: run out/demo
+    args = p 5s 800x600
+build out/stroke-ngon-1.png: run out/demo
+    args = p 5s 800x600 +
+build out/stroke-ngon-3.png: run out/demo
+    args = p 5s 800x600 +++
+build out/stroke-ngon-5.png: run out/demo
+    args = p 5s 800x600 +++++
+
+build out/union-0.png: run out/demo
+    args = p 0 800x600
+build out/union-1.png: run out/demo
+    args = p 0 800x600 +
+build out/union-3.png: run out/demo
+    args = p 0 800x600 +++
+build out/union-5.png: run out/demo
+    args = p 0 800x600 +++++
+
+build out/vm-union-0.png: run out/demo
+    args = p 6 800x600
+build out/vm-union-1.png: run out/demo
+    args = p 6 800x600 +
+build out/vm-union-3.png: run out/demo
+    args = p 6 800x600 +++
+build out/vm-union-5.png: run out/demo
+    args = p 6 800x600 +++++
+
+build out/helvetica-sdf-0.png: run out/demo
+    args = p 8 800x600
+build out/helvetica-sdf-1.png: run out/demo
+    args = p 8 800x600 +
+build out/helvetica-sdf-3.png: run out/demo
+    args = p 8 800x600 +++
+build out/helvetica-sdf-5.png: run out/demo
+    args = p 8 800x600 +++++
+
+build out/slim_difference-0.eq: compare gold/slim_difference-0.png out/slim_difference-0.png
+build out/slim_difference-1.eq: compare gold/slim_difference-1.png out/slim_difference-1.png
+build out/slim_difference-3.eq: compare gold/slim_difference-3.png out/slim_difference-3.png
+build out/slim_difference-5.eq: compare gold/slim_difference-5.png out/slim_difference-5.png
+
+build out/fat_difference-0.eq: compare gold/fat_difference-0.png out/fat_difference-0.png
+build out/fat_difference-1.eq: compare gold/fat_difference-1.png out/fat_difference-1.png
+build out/fat_difference-3.eq: compare gold/fat_difference-3.png out/fat_difference-3.png
+build out/fat_difference-5.eq: compare gold/fat_difference-5.png out/fat_difference-5.png
+
+build out/capsule-0.eq: compare gold/capsule-0.png out/capsule-0.png
+build out/capsule-1.eq: compare gold/capsule-1.png out/capsule-1.png
+build out/capsule-3.eq: compare gold/capsule-3.png out/capsule-3.png
+build out/capsule-5.eq: compare gold/capsule-5.png out/capsule-5.png
+
+build out/stroke-ngon-0.eq: compare gold/stroke-ngon-0.png out/stroke-ngon-0.png
+build out/stroke-ngon-1.eq: compare gold/stroke-ngon-1.png out/stroke-ngon-1.png
+build out/stroke-ngon-3.eq: compare gold/stroke-ngon-3.png out/stroke-ngon-3.png
+build out/stroke-ngon-5.eq: compare gold/stroke-ngon-5.png out/stroke-ngon-5.png
+
+build out/union-0.eq: compare gold/union-0.png out/union-0.png
+build out/union-1.eq: compare gold/union-1.png out/union-1.png
+build out/union-3.eq: compare gold/union-3.png out/union-3.png
+build out/union-5.eq: compare gold/union-5.png out/union-5.png
+
+build out/vm-union-0.eq: compare gold/vm-union-0.png out/vm-union-0.png
+build out/vm-union-1.eq: compare gold/vm-union-1.png out/vm-union-1.png
+build out/vm-union-3.eq: compare gold/vm-union-3.png out/vm-union-3.png
+build out/vm-union-5.eq: compare gold/vm-union-5.png out/vm-union-5.png
+
+build out/helvetica-sdf-0.eq: compare gold/helvetica-sdf-0.png out/helvetica-sdf-0.png
+build out/helvetica-sdf-1.eq: compare gold/helvetica-sdf-1.png out/helvetica-sdf-1.png
+build out/helvetica-sdf-3.eq: compare gold/helvetica-sdf-3.png out/helvetica-sdf-3.png
+build out/helvetica-sdf-5.eq: compare gold/helvetica-sdf-5.png out/helvetica-sdf-5.png
