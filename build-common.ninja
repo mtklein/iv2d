@@ -1,0 +1,38 @@
+rule compile
+    command = $cc -std=c23 -g -O1 -Werror $warn -fcolor-diagnostics $flags -MD -MF $out.d $
+                  -c $in -o $out
+    depfile = $out.d
+    deps    = gcc
+
+rule link
+    command = $cc $in -lm $flags -o $out
+
+rule run
+    command = ./$in $args > $out
+
+build $outdir/iv_test.o:  compile  iv_test.c
+build $outdir/iv_test:    link $outdir/iv_test.o
+build $outdir/iv_test.ok: run  $outdir/iv_test
+
+build $outdir/iv2d.o:         compile iv2d.c
+build $outdir/iv2d_regions.o: compile iv2d_regions.c
+build $outdir/prospero.o:     compile prospero.c
+
+build $outdir/iv2d_vm.o:       compile  iv2d_vm.c
+build $outdir/iv2d_vm_test.o:  compile  iv2d_vm_test.c
+build $outdir/iv2d_vm_test:    link $outdir/iv2d_vm_test.o $outdir/iv2d_vm.o
+build $outdir/iv2d_vm_test.ok: run  $outdir/iv2d_vm_test
+build $outdir/iv2d_regions_test.o: compile iv2d_regions_test.c
+build $outdir/iv2d_regions_test:   link $outdir/iv2d_regions_test.o $
+                                        $outdir/iv2d.o $
+                                        $outdir/iv2d_regions.o
+build $outdir/iv2d_regions_test.ok: run $outdir/iv2d_regions_test
+
+build $outdir/demo.o: compile demo.c
+    flags = -isystem /opt/homebrew/include
+build $outdir/demo: link $outdir/demo.o $
+                         $outdir/iv2d.o $
+                         $outdir/iv2d_regions.o $
+                         $outdir/iv2d_vm.o $
+                         $outdir/prospero.o
+    flags = -L/opt/homebrew/lib -lSDL2

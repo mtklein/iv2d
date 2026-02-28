@@ -1,0 +1,11 @@
+outdir = out
+
+cc   = clang
+warn = -Weverything $
+    -Wno-declaration-after-statement $
+    -Wno-poison-system-directories $
+    -Wno-pre-c11-compat $
+    -Wno-pre-c23-compat $
+    -Wno-unsafe-buffer-usage $
+
+include build-common.ninja

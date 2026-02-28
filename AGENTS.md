@@ -1,5 +1,4 @@
-Test with `ninja -f dbg && ninja`; the two can't
-run in parallel, and we want the vanilla `ninja` last.
+Test with `ninja`.
 
 Model code formatting on existing code,
 and preserve the formatting of existing code.

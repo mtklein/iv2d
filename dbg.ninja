@@ -1,0 +1,13 @@
+outdir = out/dbg
+
+cc   = clang
+san  = address,integer,undefined
+cc   = $cc -fsanitize=$san -fno-sanitize-recover=$san
+warn = -Weverything $
+    -Wno-declaration-after-statement $
+    -Wno-poison-system-directories $
+    -Wno-pre-c11-compat $
+    -Wno-pre-c23-compat $
+    -Wno-unsafe-buffer-usage $
+
+include build-common.ninja

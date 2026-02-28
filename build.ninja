@@ -1,109 +1,70 @@
 builddir = out
 
-cc   = clang
-warn = -Weverything $
-    -Wno-declaration-after-statement $
-    -Wno-poison-system-directories $
-    -Wno-pre-c11-compat $
-    -Wno-pre-c23-compat $
-    -Wno-unsafe-buffer-usage $
-
-
-rule compile
-    command = $cc -std=c23 -g -O1 -Werror $warn -fcolor-diagnostics $flags -MD -MF $out.d $
-                  -c $in -o $out
-    depfile = $out.d
-    deps    = gcc
-
-rule link
-    command = $cc $in -lm $flags -o $out
+subninja rel.ninja
+subninja dbg.ninja
 
 rule run
     command = ./$in $args > $out
 
-build out/iv_test.o:  compile  iv_test.c
-build out/iv_test:    link out/iv_test.o
-build out/iv_test.ok: run  out/iv_test
-
-build out/iv2d.o:         compile iv2d.c
-build out/iv2d_regions.o: compile iv2d_regions.c
-build out/prospero.o:     compile prospero.c
-
-build out/iv2d_vm.o:       compile  iv2d_vm.c
-build out/iv2d_vm_test.o:  compile  iv2d_vm_test.c
-build out/iv2d_vm_test:    link out/iv2d_vm_test.o out/iv2d_vm.o
-build out/iv2d_vm_test.ok: run  out/iv2d_vm_test
-build out/iv2d_regions_test.o: compile iv2d_regions_test.c
-build out/iv2d_regions_test:   link out/iv2d_regions_test.o out/iv2d.o out/iv2d_regions.o
-build out/iv2d_regions_test.ok: run out/iv2d_regions_test
-
-build out/demo.o: compile demo.c
-    flags = -isystem /opt/homebrew/include
-build out/demo: link out/demo.o out/iv2d.o $
-                                out/iv2d_regions.o $
-                                out/iv2d_vm.o $
-                                out/prospero.o
-    flags = -L/opt/homebrew/lib -lSDL2
-
-build gold/slim_difference-0.png: run out/demo
+build gold/slim_difference-0.png: run out/dbg/demo
     args = p 2 600x402
-build gold/slim_difference-1.png: run out/demo
+build gold/slim_difference-1.png: run out/dbg/demo
     args = p 2 600x402 +
-build gold/slim_difference-3.png: run out/demo
+build gold/slim_difference-3.png: run out/dbg/demo
     args = p 2 600x402 +++
-build gold/slim_difference-5.png: run out/demo
+build gold/slim_difference-5.png: run out/dbg/demo
     args = p 2 600x402 +++++
 
-build gold/fat_difference-0.png: run out/demo
+build gold/fat_difference-0.png: run out/dbg/demo
     args = p 2 800x600
-build gold/fat_difference-1.png: run out/demo
+build gold/fat_difference-1.png: run out/dbg/demo
     args = p 2 800x600 +
-build gold/fat_difference-3.png: run out/demo
+build gold/fat_difference-3.png: run out/dbg/demo
     args = p 2 800x600 +++
-build gold/fat_difference-5.png: run out/demo
+build gold/fat_difference-5.png: run out/dbg/demo
     args = p 2 800x600 +++++
 
-build gold/capsule-0.png: run out/demo
+build gold/capsule-0.png: run out/dbg/demo
     args = p 3 800x600
-build gold/capsule-1.png: run out/demo
+build gold/capsule-1.png: run out/dbg/demo
     args = p 3 800x600 +
-build gold/capsule-3.png: run out/demo
+build gold/capsule-3.png: run out/dbg/demo
     args = p 3 800x600 +++
-build gold/capsule-5.png: run out/demo
+build gold/capsule-5.png: run out/dbg/demo
     args = p 3 800x600 +++++
 
-build gold/stroke-ngon-0.png: run out/demo
+build gold/stroke-ngon-0.png: run out/dbg/demo
     args = p 5s 800x600
-build gold/stroke-ngon-1.png: run out/demo
+build gold/stroke-ngon-1.png: run out/dbg/demo
     args = p 5s 800x600 +
-build gold/stroke-ngon-3.png: run out/demo
+build gold/stroke-ngon-3.png: run out/dbg/demo
     args = p 5s 800x600 +++
-build gold/stroke-ngon-5.png: run out/demo
+build gold/stroke-ngon-5.png: run out/dbg/demo
     args = p 5s 800x600 +++++
 
-build gold/union-0.png: run out/demo
+build gold/union-0.png: run out/dbg/demo
     args = p 0 800x600
-build gold/union-1.png: run out/demo
+build gold/union-1.png: run out/dbg/demo
     args = p 0 800x600 +
-build gold/union-3.png: run out/demo
+build gold/union-3.png: run out/dbg/demo
     args = p 0 800x600 +++
-build gold/union-5.png: run out/demo
+build gold/union-5.png: run out/dbg/demo
     args = p 0 800x600 +++++
 
-build gold/vm-union-0.png: run out/demo
+build gold/vm-union-0.png: run out/dbg/demo
     args = p 6 800x600
-build gold/vm-union-1.png: run out/demo
+build gold/vm-union-1.png: run out/dbg/demo
     args = p 6 800x600 +
-build gold/vm-union-3.png: run out/demo
+build gold/vm-union-3.png: run out/dbg/demo
     args = p 6 800x600 +++
-build gold/vm-union-5.png: run out/demo
+build gold/vm-union-5.png: run out/dbg/demo
     args = p 6 800x600 +++++
 
-build gold/helvetica-sdf-0.png: run out/demo
+build gold/helvetica-sdf-0.png: run out/dbg/demo
     args = p 8 800x600
-build gold/helvetica-sdf-1.png: run out/demo
+build gold/helvetica-sdf-1.png: run out/dbg/demo
     args = p 8 800x600 +
-build gold/helvetica-sdf-3.png: run out/demo
+build gold/helvetica-sdf-3.png: run out/dbg/demo
     args = p 8 800x600 +++
-build gold/helvetica-sdf-5.png: run out/demo
+build gold/helvetica-sdf-5.png: run out/dbg/demo
     args = p 8 800x600 +++++
