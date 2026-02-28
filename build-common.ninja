@@ -28,11 +28,32 @@ build $outdir/iv2d_regions_test:   link $outdir/iv2d_regions_test.o $
                                         $outdir/iv2d_regions.o
 build $outdir/iv2d_regions_test.ok: run $outdir/iv2d_regions_test
 
+build $outdir/slides.o: compile slides.c
+
 build $outdir/demo.o: compile demo.c
     flags = -isystem /opt/homebrew/include
 build $outdir/demo: link $outdir/demo.o $
+                         $outdir/slides.o $
                          $outdir/iv2d.o $
                          $outdir/iv2d_regions.o $
                          $outdir/iv2d_vm.o $
                          $outdir/prospero.o
     flags = -L/opt/homebrew/lib -lSDL2
+
+build $outdir/gold.o: compile gold.c
+    flags = -isystem /opt/homebrew/include
+build $outdir/gold: link $outdir/gold.o $
+                         $outdir/slides.o $
+                         $outdir/iv2d.o $
+                         $outdir/iv2d_regions.o $
+                         $outdir/iv2d_vm.o $
+                         $outdir/prospero.o
+    flags = -L/opt/homebrew/lib -lSDL2
+
+build $outdir/bench.o: compile bench.c
+build $outdir/bench: link $outdir/bench.o $
+                          $outdir/slides.o $
+                          $outdir/iv2d.o $
+                          $outdir/iv2d_regions.o $
+                          $outdir/iv2d_vm.o $
+                          $outdir/prospero.o
